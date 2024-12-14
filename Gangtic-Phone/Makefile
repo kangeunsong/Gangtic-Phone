@@ -1,6 +1,6 @@
 # 변수 정의
 CC = gcc                  # 컴파일러
-CFLAGS = -Wall -g -I/home/kangeunsong/SP_project/include  # 컴파일 옵션 (경고 메시지 및 디버깅 기호 포함, 헤더 파일 경로 추가)
+CFLAGS = -Wall -g -I/home/kangeunsong/Gangtic-Phone/Gangtic-Phone/include  # 컴파일 옵션 (경고 메시지 및 디버깅 기호 포함, 헤더 파일 경로 추가)
 LIBS = -lSDL2 -lSDL2_ttf -lSDL2_image -lSDL2_mixer -lpthread # 필요 라이브러리
 
 # src 폴더 내의 특정 .c 파일 목록

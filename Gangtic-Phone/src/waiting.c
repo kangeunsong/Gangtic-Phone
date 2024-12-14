@@ -40,7 +40,7 @@ GameState temp_state = WAITING_ROOM;
 
 int rooms_num = 0;
 
-int room_num = 0;
+// int room_num = 0;
 int current_room_num = -1;
 char **rooms = NULL;
 int room_player_num[4] = {0,};
@@ -206,13 +206,14 @@ void join_room(SDL_Renderer *renderer, int Rnumber) {
     if (nbyte > 0) {
         recv_buffer[nbyte] = '\0';
         if (strcmp(recv_buffer, "POSSIBLE") == 0) {
+            printf("possible!!!!!!");
             SDL_Rect green_wait_rect = {329, 521, 782, 96};
             SDL_RenderCopy(renderer, green_wait_texture, NULL, &green_wait_rect);
             SDL_RenderPresent(renderer);
 
             char join_buffer[MAXLINE];
             snprintf(join_buffer, sizeof(join_buffer), "IM_%d_%d_%s\n", Rnumber, sockID, nickname);
-            send(sockfd, join_buffer, strlen(buffer), 0);
+            send(sockfd, join_buffer, strlen(join_buffer), 0);
 
             while (1) {
                 fd_set readfds;
@@ -234,7 +235,7 @@ void join_room(SDL_Renderer *renderer, int Rnumber) {
                             return;
                         }
                         else if (strcmp(status_buffer, "GAME_PLAYER_START") == 0) {
-                            current_state = GAME_PLAYER_START;
+                            current_state = GAME_PLAYER_SCREEN;
                             render_update_needed = 1;
                             return;
                         }
@@ -446,41 +447,8 @@ void render_waiting_room(SDL_Renderer *renderer)
 
                 // 참가할 방 클릭
                 else if (x >= 145 && x <= 500 && y >= 399 && y <= 634) {
-                    // current_room_num = 1;
-                    // if(room_player_num[current_room_num - 1] < MAX_USERS_PER_ROOM){
-                    //     room_player_num[current_room_num - 1]++;
-                    //     int status = handle_room_status(renderer);  // handle_room_status를 한 번만 호출
-                    //     printf("%d\n", status);
-                    //     if(status == 5){
-                    //         temp_state = GAME_PAINTER_SCREEN;
-                    //         render_update_needed = 1;
-                    //     }
-                    //     else if(status == 7){
-                    //         temp_state = GAME_PLAYER_SCREEN;
-                    //         render_update_needed = 1;
-                    //     }
-                    // }
-
-                    // return;
-
-                    // current_room_num = 1;
-                    // if(room_player_num[current_room_num - 1] < MAX_USERS_PER_ROOM){
-                    //     room_player_num[current_room_num - 1]++;
-                    //     int status = handle_room_status(renderer);
-                    //     printf("%d\n", status);
-                        
-                    //     // 1번 방은 바로 게임으로 진입
-                    //     if(status == 5){
-                    //         current_state = GAME_PAINTER_SCREEN;
-                    //     } else {
-                    //         current_state = GAME_PLAYER_SCREEN;
-                    //     }
-                    //     current_state = GAME_PAINTER_SCREEN;
-                    //     render_update_needed = 1;
-                    //     return;  // return 추가
-                    // }
-
                     join_room(renderer, 1);
+                    return;
                 }
                 else if (x >= 779 && x <= 1200 && y >= 401 && y <= 636) { 
                     current_room_num = 2;
@@ -529,17 +497,17 @@ void render_waiting_room(SDL_Renderer *renderer)
                     return;
                 }
 
-                if (room_num > 0) 
+                if (rooms_num > 0) 
                 {
                     // 마지막 방 x 버튼의 위치 계산
                     SDL_Rect x_button_rect;
-                    if (room_num == 1) {
+                    if (rooms_num == 1) {
                         x_button_rect = (SDL_Rect){590, 403, 45, 68};
-                    } else if (room_num == 2) {
+                    } else if (rooms_num == 2) {
                         x_button_rect = (SDL_Rect){1223, 403, 45, 68};
-                    } else if (room_num == 3) {
+                    } else if (rooms_num == 3) {
                         x_button_rect = (SDL_Rect){590, 695, 45, 68};
-                    } else if (room_num == 4) {
+                    } else if (rooms_num == 4) {
                         x_button_rect = (SDL_Rect){1223, 695, 45, 68};
                     }
 
