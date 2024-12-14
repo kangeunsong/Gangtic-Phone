@@ -406,6 +406,7 @@ void render_waiting_room(SDL_Renderer *renderer)
                 else if (x >= 145 && x <= 500 && y >= 399 && y <= 634) {
                     if(rooms_num >= 1){
                         if(join_room(renderer, 1) == 1){
+                            current_room_num = 1;
                             running = 0;
                         }                        
                         return;
@@ -427,6 +428,7 @@ void render_waiting_room(SDL_Renderer *renderer)
                     // }
                     if(rooms_num >= 2){
                         if(join_room(renderer, 2) == 1){
+                            current_room_num = 2;
                             running = 0;
                         }                        
                         return;
@@ -435,6 +437,7 @@ void render_waiting_room(SDL_Renderer *renderer)
                 else if (x >= 145 && x <= 500 && y >= 690 && y <= 870) {
                     if(rooms_num >= 3){
                         if(join_room(renderer, 3) == 1){
+                            current_room_num = 3;
                             running = 0;
                         }                        
                         return;
@@ -443,6 +446,7 @@ void render_waiting_room(SDL_Renderer *renderer)
                 else if (x >= 779 && x <= 1200 && y >= 690 && y <= 870) { 
                     if(rooms_num == 4){
                         if(join_room(renderer, 4) == 1){
+                            current_room_num = 4;
                             running = 0;
                         }                        
                         return;

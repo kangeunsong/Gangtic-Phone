@@ -32,7 +32,6 @@
 void connect_to_server(const char* server_ip, int server_port);
 void send_command(const char* command);
 void send_nickname(const char* nickname);  // 닉네임을 서버로 전송하는 함수
-// void update_room_list(); // 방 목록 갱신 함수
 
 void init_music();
 void init_correct_sound();
@@ -49,7 +48,6 @@ TTF_Font *font = NULL;
 int sockfd; // 서버 소켓
 int sockID;
 int render_update_needed = 1;
-// GameState current_state = GAME_PAINTER_SCREEN;
 GameState current_state = HOME_SCREEN;
 char *nickname = NULL;
 int answer_num = 0;
@@ -63,7 +61,7 @@ int init_sdl()
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     font = TTF_OpenFont("assets/fonts/font.ttf", 55); // 폰트 파일 필요
 
-    init_music(); 
+    // init_music();  // 소리 잠깐 없애놓음
     init_correct_sound();
     init_wrong_sound();
 
@@ -110,20 +108,6 @@ void send_command(const char* command) {
 void send_nickname(const char* nickname) {
     send(sockfd, nickname, strlen(nickname), 0);  // 닉네임 서버로 전송
 }
-
-// 방 목록을 서버에서 받아와 갱신하는 함수
-// void update_room_list() {
-//     send_command("REQUEST_ROOM_INFO");
-//     char buffer[MAXLINE];
-//     int nbyte = recv(sockfd, buffer, MAXLINE, 0);
-    
-//     if (nbyte > 0) {
-//         buffer[nbyte] = '\0';
-//         printf("서버에서 받은 방 목록: %s\n", buffer);
-//     } else {
-//         printf("방 목록을 가져오지 못했습니다.\n");
-//     }
-// }
 
 void Gangtic_Phone(){
     SDL_Event event;

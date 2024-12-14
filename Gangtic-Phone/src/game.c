@@ -44,6 +44,8 @@ int prev_x = -1, prev_y = -1;
 Mix_Chunk *correct_sound = NULL; // 정답 효과음
 Mix_Chunk *wrong_sound = NULL; // 오답 효과음
 
+int current_round = 0;
+
 void init_correct_sound() {
     correct_sound = Mix_LoadWAV("assets/audio/correct_music.mp3");
     if (!correct_sound) {
@@ -133,13 +135,34 @@ int init_game_screen_images(SDL_Renderer *renderer)
     return 1; // 모든 이미지 로드 성공 시
 }
 
+void check_round(){
+    char buffer[MAXLINE];
+    snprintf(buffer, sizeof(buffer), "CHECK_ROUND_%d\n", (current_room_num));
+    send(sockfd, buffer, strlen(buffer), 0);
+
+    char round_buffer[MAXLINE];
+    int nbyte = recv(sockfd, round_buffer, MAXLINE, 0);
+    if (nbyte > 0) {
+        round_buffer[nbyte] = '\0';
+        if (strncmp(round_buffer, "ROUND_", 6) == 0) {
+            current_round = atoi(&cmdline[6]);
+            return;
+        }
+        else { 
+            printf("Can't get the round!\n");
+            return;
+        }
+    }
+}
+
 // 그림판 기능
 void drawing_loop(SDL_Renderer *renderer)
 {
-    char set_painter_buffer[MAXLINE];
-    snprintf(set_painter_buffer, sizeof(set_painter_buffer), "SET_PAINTER_%d_%d\n", current_room_num, sockID);
-    send(sockfd, set_painter_buffer, strlen(set_painter_buffer), 0);
-    printf("Send: %s\n", set_painter_buffer);
+    // char set_painter_buffer[MAXLINE];
+    // snprintf(set_painter_buffer, sizeof(set_painter_buffer), "SET_PAINTER_%d_%d\n", current_room_num, sockID);
+    // send(sockfd, set_painter_buffer, strlen(set_painter_buffer), 0);
+    // printf("Send: %s\n", set_painter_buffer);
+    check_round();
 
     char* answer = NULL;
     SDL_Event event;
@@ -156,11 +179,11 @@ void drawing_loop(SDL_Renderer *renderer)
 
     char words[5][100];  // 5개의 단어를 저장할 배열
 
-    // answer_num번째 줄의 단어 선택
-    for (int i = 0; i <= answer_num; i++) {
+    // 임시로 답 설정을 처음부터 순서대로 5개
+    for (int i = 0; i <= current_round; i++) {
         if (fgets(words[i], sizeof(words[i]), file)) {
-            if (i == answer_num) {
-                answer = words[answer_num];
+            if (i == current_round) {
+                answer = words[current_round];
                 answer[strcspn(answer, "\n")] = 0;  // 개행문자 제거
                 break;
             }
@@ -173,11 +196,12 @@ void drawing_loop(SDL_Renderer *renderer)
         return;
     }
 
-    // 다음 라운드를 위해 answer_num 증가
-    printf("Draw this word!: %s", answer);
+    printf("### ROUND %d ###\n", current_round);
+    printf("Draw this word!: %s\n", answer);
     char answer_command[MAXLINE];
     snprintf(answer_command, sizeof(answer_command), "SET_ANSWER_%d_%s\n", current_room_num, answer);
     send(sockfd, answer_command, strlen(answer_command), 0);
+
 
     int stop_drawing = 0;
     static Uint32 last_check_time = 0;
@@ -220,15 +244,6 @@ void drawing_loop(SDL_Renderer *renderer)
             }
         }
 
-        // CHECK_ROUND 메시지 주기적 전송
-        Uint32 current_time = SDL_GetTicks();
-        if (current_time - last_check_time > 1000) {  // 1초마다 체크
-            char check_round_buffer[MAXLINE];
-            snprintf(check_round_buffer, sizeof(check_round_buffer), "CHECK_ROUND_%d_%d", current_room_num, sockID);
-            send(sockfd, check_round_buffer, strlen(check_round_buffer), 0);
-            last_check_time = current_time;
-        }
-
         // SDL Event handling
         while (SDL_PollEvent(&event)) {
             int x = event.button.x;
@@ -239,19 +254,6 @@ void drawing_loop(SDL_Renderer *renderer)
             case SDL_QUIT:
                 stop_drawing = 1;
                 break;
-
-            case SDL_MOUSEBUTTONDOWN:                
-                // "뒤로가기" 버튼 클릭 확인
-                SDL_Rect white_back_rect = {73, 80, 179, 58};
-                if (x >= white_back_rect.x && x <= white_back_rect.x + white_back_rect.w && y >= white_back_rect.y && y <= white_back_rect.y + white_back_rect.h)
-                {
-                    printf("back button has been clicked.");
-                    current_state = RESULT_SCREEN;
-                    render_update_needed = 1;
-                    return;
-                }
-                break;
-            }
 
             if (x >= canvas_rect.x && x <= canvas_rect.x + canvas_rect.w && 
                 y >= canvas_rect.y && y <= canvas_rect.y + canvas_rect.h) {
@@ -280,6 +282,7 @@ void drawing_loop(SDL_Renderer *renderer)
                             prev_y = event.motion.y;
                         }
                         break;
+                    }
                 }
             } else {
                 if (event.type == SDL_MOUSEBUTTONUP || event.type == SDL_MOUSEMOTION) {
@@ -289,512 +292,221 @@ void drawing_loop(SDL_Renderer *renderer)
         }
     }
 
-    answer_num++;
     printf("It has been stopped.\n");
     SDL_Rect sketchbook_rect = {70, 250, 750, 700};
     SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
     return;
 }
 
-void draw_thick_line(int x1, int y1, int x2, int y2, SDL_Renderer *renderer)
+void draw_thick_line(int x1, int y1, int x2, int y2, SDL_Renderer *renderer) // 화면에 그림을 그리는 함수
 {
     char draw_cmd[MAXLINE];
-    snprintf(draw_cmd, MAXLINE, "SEND_DRAWING_%d_%d_%d_%d_%d_%d\n", current_room_num, sockfd, x1, y1, x2, y2);
+    snprintf(draw_cmd, MAXLINE, "SEND_DRAWING_%d_%d_%d_%d_%d\n", current_room_num, x1, y1, x2, y2);
     send(sockfd, draw_cmd, strlen(draw_cmd), 0);
 
     for (int w = -LINE_THICKNESS / 2; w <= LINE_THICKNESS / 2; w++)  
     {
-        // 두 점을 연결하는 선을 그립니다 (x1, y1)에서 (x2, y2)로
-        SDL_RenderDrawLine(renderer, x1 + w, y1, x2 + w, y2);  // 수평선
-        SDL_RenderDrawLine(renderer, x1, y1 + w, x2, y2 + w);  // 수직선
+        SDL_RenderDrawLine(renderer, x1 + w, y1, x2 + w, y2);
+        SDL_RenderDrawLine(renderer, x1, y1 + w, x2, y2 + w);
     }
-    SDL_RenderPresent(renderer);  // 변경된 화면을 즉시 렌더링
+    SDL_RenderPresent(renderer);
 }
-
-// void getting_answer_loop(SDL_Renderer *renderer)
-// {
-//     SDL_Event event;
-//     int stop_answering = 0;
-
-//     while (!stop_answering) {
-//         char check_round_buffer[MAXLINE];
-//         snprintf(check_round_buffer, sizeof(check_round_buffer), "CHECK_ROUND_%d_%d", current_room_num, sockID);
-//         send(sockfd, check_round_buffer, strlen(check_round_buffer), 0);
-//         char tempbuffer[MAXLINE];
-//         int tempnbyte = recv(sockfd, tempbuffer, MAXLINE, 0);
-//         if (tempnbyte > 0) {
-//             tempbuffer[tempnbyte] = '\0';
-//             if (strcmp(tempbuffer, "GAME_OVER") == 0) {
-//                 printf("GAME_OVER\n");
-//                 current_state = RESULT_SCREEN;       
-//                 render_update_needed = 1;
-//                 return;
-//             }
-//         }
-
-//         render_clock(renderer);
-//         SDL_RenderPresent(renderer);
-//         SDL_Delay(16);
-//         char player_answer[100];
-//         printf("enter answer: ");
-//         scanf("%s", player_answer);
-//         getchar();
-//         printf("%d, %d, %s\n", current_room_num, sockID, player_answer);
-//         char send_buffer[MAXLINE];
-//         snprintf(send_buffer, sizeof(send_buffer), "RECV_ANSWER_%d_%s", current_room_num, player_answer);
-//         printf("%s\n", send_buffer);
-//         send(sockfd, send_buffer, strlen(send_buffer), 0);
-        
-//         char recv_buffer[MAXLINE];
-//         int nbyte = recv(sockfd, recv_buffer, MAXLINE, 0);
-//         recv_buffer[nbyte] = '\0';
-
-//         if (strcmp(recv_buffer, "RIGHT") == 0) {
-//             if (correct_sound) {
-//                 Mix_PlayChannel(-1, correct_sound, 0); // 효과음 재생 (한 번)
-//             }
-//             char G_buffer[MAXLINE];
-//             snprintf(G_buffer, sizeof(G_buffer), "GET_CORRECT_%d_%d\n", current_room_num, sockID);
-//             printf("send: %s", G_buffer);
-//             send(sockfd, G_buffer, strlen("GET_CORRECT_N_N"), 0);
-//             current_state = GAME_PAINTER_SCREEN;
-//             printf("current_state: GAME_PAINTER_SCREEN\n");         
-//             render_update_needed = 1;
-//             stop_answering = 1;
-//             break;
-//         }
-
-//         else if (strcmp(recv_buffer, "WRONG") == 0){
-//             if (wrong_sound) {
-//                 Mix_PlayChannel(-1, wrong_sound, 0); // 효과음 재생 (한 번)
-//             }
-//             printf("try again ...\n");
-//         }
-
-//         else if (strncmp(recv_buffer, "DRAW_", 5) == 0) {
-//             char *msg = recv_buffer;
-//             char *next;
-            
-//             while ((next = strstr(msg, "DRAW_")) != NULL) {
-//                 int x1, y1, x2, y2;
-//                 sscanf(next + 5, "%d_%d_%d_%d", &x1, &y1, &x2, &y2);
-                
-//                 SDL_SetRenderDrawColor(renderer, BLACK);
-//                 for (int w = -LINE_THICKNESS / 2; w <= LINE_THICKNESS / 2; w++) {
-//                     SDL_RenderDrawLine(renderer, x1 + w, y1, x2 + w, y2);
-//                     SDL_RenderDrawLine(renderer, x1, y1 + w, x2, y2 + w);
-//                 }
-//                 SDL_RenderPresent(renderer);
-                
-//                 msg = next + 5;
-//             }
-//         }
-
-//         while (SDL_PollEvent(&event))
-//         {
-//             switch (event.type)
-//             {
-//             case SDL_QUIT:
-//                 stop_answering = 1;  
-//                 break;
-
-//             case SDL_MOUSEBUTTONDOWN:
-//                 int x = event.button.x;
-//                 int y = event.button.y;
-                
-//                 SDL_Rect white_back_rect = {73, 80, 179, 58};
-//                 if (x >= white_back_rect.x && x <= white_back_rect.x + white_back_rect.w && y >= white_back_rect.y && y <= white_back_rect.y + white_back_rect.h)
-//                 {
-//                     printf("back button has been clicked.\n");
-//                     current_state = RESULT_SCREEN;
-//                     render_update_needed = 1;
-//                     stop_answering = 1;  
-//                     return;
-//                 }
-//                 break;
-//             }
-//         }
-//     }
-
-//     SDL_Rect sketchbook_rect = {70, 250, 750, 700};
-//     SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
-//     return;
-// }
-
-// void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
-// {
-//     SDL_Rect text_box_rect = {900, 830, 400, 60}; // 텍스트박스 위치와 크기
-//     SDL_Color box_color = {200, 200, 200, 255};   // 텍스트박스 색상
-//     SDL_Color text_color = {0, 0, 0, 255};        // 텍스트 색상
-//     char input_buffer[100] = "";                  // 텍스트 입력 저장
-//     int cursor_visible = 1;                       // 커서 깜박임
-//     Uint32 last_blink_time = SDL_GetTicks();      // 커서 깜박임 타이머
-
-//     SDL_Event event;
-//     int stop_answering = 0;
-//     static Uint32 last_check_time = 0;
-
-//     SDL_StartTextInput();
-
-//     while (!stop_answering) {
-//         render_clock(renderer);
-//         // SDL_RenderPresent(renderer);
-//         // SDL_Delay(16);
-
-//         SDL_SetRenderDrawColor(renderer, box_color.r, box_color.g, box_color.b, box_color.a);
-//         SDL_RenderFillRect(renderer, &text_box_rect);
-
-//         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // 테두리 색상
-//         SDL_RenderDrawRect(renderer, &text_box_rect);
-
-//         if (strlen(input_buffer) > 0)
-//         {
-//             SDL_Surface *text_surface = TTF_RenderText_Blended(font, input_buffer, text_color);
-//             if (text_surface)
-//             {
-//                 SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-//                 SDL_Rect text_rect = {text_box_rect.x + 10, text_box_rect.y + (text_box_rect.h - text_surface->h) / 2, text_surface->w, text_surface->h};
-//                 SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
-
-//                 SDL_FreeSurface(text_surface);
-//                 SDL_DestroyTexture(text_texture);
-//             }
-//         }
-
-//         // CHECK_ROUND 메시지 주기적 전송
-//         Uint32 current_time = SDL_GetTicks();
-//         if (current_time - last_check_time > 1000) {  // 1초마다 체크
-//             char check_round_buffer[MAXLINE];
-//             snprintf(check_round_buffer, sizeof(check_round_buffer), "CHECK_ROUND_%d_%d", current_room_num, sockID);
-//             send(sockfd, check_round_buffer, strlen(check_round_buffer), 0);
-            
-//             // Non-blocking socket check
-//             fd_set readfds;
-//             struct timeval timeout;
-//             FD_ZERO(&readfds);
-//             FD_SET(sockfd, &readfds);
-            
-//             timeout.tv_sec = 0;
-//             timeout.tv_usec = 10000; // 10ms timeout
-            
-//             int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
-//             if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
-//                 char tempbuffer[MAXLINE];
-//                 int tempnbyte = recv(sockfd, tempbuffer, MAXLINE, 0);
-//                 if (tempnbyte > 0) {
-//                     tempbuffer[tempnbyte] = '\0';
-//                     printf("Received: %s\n", tempbuffer);
-//                     if (strcmp(tempbuffer, "GAME_OVER") == 0) {
-//                         printf("GAME_OVER\n");
-//                         current_state = RESULT_SCREEN;       
-//                         render_update_needed = 1;
-//                         return;
-//                     }
-//                 }
-//             }
-//             last_check_time = current_time;
-//         }
-//         if (current_time > last_blink_time + 500)
-//         {
-//             cursor_visible = !cursor_visible;
-//             last_blink_time = current_time;
-//         }
-//         if (cursor_visible)
-//         {
-//             int text_width = 0, text_height = 0;
-//             TTF_SizeText(font, input_buffer, &text_width, &text_height);
-//             SDL_Rect cursor_rect = {text_box_rect.x + 10 + text_width, text_box_rect.y + 5, 2, text_box_rect.h - 10};
-//             SDL_SetRenderDrawColor(renderer, text_color.r, text_color.g, text_color.b, text_color.a);
-//             SDL_RenderFillRect(renderer, &cursor_rect);
-//         }
-
-//         SDL_RenderPresent(renderer);
-
-//         if(answer_num == 5){
-//             current_state = RESULT_SCREEN;       
-//             render_update_needed = 1;
-//             return;
-//         }
-
-//         char recv_buffer[MAXLINE];
-//         if (strncmp(recv_buffer, "DRAW_", 5) == 0) {
-//             char *msg = recv_buffer;
-//             char *next;
-            
-//             while ((next = strstr(msg, "DRAW_")) != NULL) {
-//                 int x1, y1, x2, y2;
-//                 sscanf(next + 5, "%d_%d_%d_%d", &x1, &y1, &x2, &y2);
-                
-//                 SDL_SetRenderDrawColor(renderer, BLACK);
-//                 for (int w = -LINE_THICKNESS / 2; w <= LINE_THICKNESS / 2; w++) {
-//                     SDL_RenderDrawLine(renderer, x1 + w, y1, x2 + w, y2);
-//                     SDL_RenderDrawLine(renderer, x1, y1 + w, x2, y2 + w);
-//                 }
-//                 SDL_RenderPresent(renderer);
-                
-//                 msg = next + 5;
-//             }
-//         }
-
-//         // SDL Event handling
-//         while (SDL_PollEvent(&event)) {
-//             switch (event.type)
-//             {
-//             case SDL_QUIT:
-//                 stop_answering = 1;  
-//                 break;
-
-//             case SDL_TEXTINPUT:
-//                 if (strlen(input_buffer) < sizeof(input_buffer) - 1)
-//                 {
-//                     strcat(input_buffer, event.text.text); // 텍스트 추가
-//                 }
-//                 break;
-
-//             case SDL_KEYDOWN:
-//                 if (event.key.keysym.sym == SDLK_BACKSPACE && strlen(input_buffer) > 0)
-//                 {
-//                     input_buffer[strlen(input_buffer) - 1] = '\0'; // 백스페이스 처리
-//                 }
-//                 else if (event.key.keysym.sym == SDLK_RETURN)
-//                 {
-//                     input_buffer[strcspn(input_buffer, "\n")] = '\0';
-//                     printf("입력된 텍스트: %s\n", input_buffer); // 엔터 입력 시 출력
-//                     char send_buffer[MAXLINE];
-//                     snprintf(send_buffer, sizeof(send_buffer), "RECV_ANSWER_%d_%s", current_room_num, input_buffer);
-//                     send(sockfd, send_buffer, strlen(send_buffer), 0);
-
-//                     // 서버 응답 수신
-//                     char recv_buffer[MAXLINE];
-//                     int nbyte = recv(sockfd, recv_buffer, MAXLINE, 0);
-//                     recv_buffer[nbyte] = '\0';
-//                     printf("서버 응답: %s\n", recv_buffer);
-
-//                     if (strcmp(recv_buffer, "RIGHT") == 0)
-//                     {
-//                         printf("right!\n");
-//                         if (correct_sound)
-//                         {
-//                             Mix_PlayChannel(-1, correct_sound, 0); // 효과음 재생
-//                         }
-//                         char G_buffer[MAXLINE];
-//                         snprintf(G_buffer, sizeof(G_buffer), "GET_CORRECT_%d_%d\n", current_room_num, sockID);
-//                         printf("send: %s", G_buffer);
-//                         send(sockfd, G_buffer, strlen(G_buffer), 0);
-//                         printf("current_state: GAME_PAINTER_SCREEN\n"); 
-//                         current_state = GAME_PAINTER_SCREEN;
-//                         stop_answering = 1;
-//                     }
-//                     else if (strcmp(recv_buffer, "WRONG") == 0)
-//                     {
-//                         if (wrong_sound)
-//                         {
-//                             Mix_PlayChannel(-1, wrong_sound, 0); // 효과음 재생
-//                         }
-//                         printf("정답이 아닙니다. 다시 시도하세요.\n");
-//                     }
-//                 }
-//                 break;
-//             }
-//         }
-//     }
-
-//     answer_num++;
-//     SDL_StopTextInput(); // 텍스트 입력 비활성화
-//     SDL_Rect sketchbook_rect = {70, 250, 750, 700};
-//     SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
-//     return;
-// }
 
 void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
 {
-   SDL_Rect text_box_rect = {900, 830, 400, 60}; // 텍스트박스 위치와 크기
-   SDL_Color box_color = {200, 200, 200, 255};   // 텍스트박스 색상
-   SDL_Color text_color = {0, 0, 0, 255};        // 텍스트 색상
-   char input_buffer[100] = "";                  // 텍스트 입력 저장
-   int cursor_visible = 1;                       // 커서 깜박임
-   Uint32 last_blink_time = SDL_GetTicks();      // 커서 깜박임 타이머
+    SDL_Rect text_box_rect = {900, 830, 400, 60}; // 텍스트박스 위치와 크기
+    SDL_Color box_color = {200, 200, 200, 255};   // 텍스트박스 색상
+    SDL_Color text_color = {0, 0, 0, 255};        // 텍스트 색상
+    char input_buffer[100] = "";                  // 텍스트 입력 저장
+    int cursor_visible = 1;                       // 커서 깜박임
+    Uint32 last_blink_time = SDL_GetTicks();      // 커서 깜박임 타이머
 
-   SDL_Event event;
-   int stop_answering = 0;
-   static Uint32 last_check_time = 0;
+    SDL_Event event;
+    int stop_answering = 0;
+    static Uint32 last_check_time = 0;
 
-   SDL_StartTextInput();
+    SDL_StartTextInput();
 
-   while (!stop_answering) {
-       render_clock(renderer);
+    while (!stop_answering) {
+        render_clock(renderer);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(16);
 
-       // 텍스트 박스 그리기
-       SDL_SetRenderDrawColor(renderer, box_color.r, box_color.g, box_color.b, box_color.a);
-       SDL_RenderFillRect(renderer, &text_box_rect);
+        SDL_SetRenderDrawColor(renderer, box_color.r, box_color.g, box_color.b, box_color.a);
+        SDL_RenderFillRect(renderer, &text_box_rect);
 
-       SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // 테두리 색상
-       SDL_RenderDrawRect(renderer, &text_box_rect);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // 테두리 색상
+        SDL_RenderDrawRect(renderer, &text_box_rect);
 
-       if (strlen(input_buffer) > 0)
-       {
-           SDL_Surface *text_surface = TTF_RenderText_Blended(font, input_buffer, text_color);
-           if (text_surface)
-           {
-               SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-               SDL_Rect text_rect = {text_box_rect.x + 10, text_box_rect.y + (text_box_rect.h - text_surface->h) / 2, text_surface->w, text_surface->h};
-               SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+        // Non-blocking socket check
+        fd_set readfds;
+        struct timeval timeout;
+        FD_ZERO(&readfds);
+        FD_SET(sockfd, &readfds);
 
-               SDL_FreeSurface(text_surface);
-               SDL_DestroyTexture(text_texture);
-           }
-       }
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 10000; // 10ms timeout
 
-       // 서버로부터 그리기 명령 받기
-       fd_set readfds;
-       struct timeval timeout;
-       FD_ZERO(&readfds);
-       FD_SET(sockfd, &readfds);
-       timeout.tv_sec = 0;
-       timeout.tv_usec = 10000;
+        int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
+        if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
+            int nbyte = recv(sockfd, buffer, MAXLINE, 0);
+            if (nbyte > 0) {
+                buffer[nbyte] = '\0';
+                printf("Received: %s\n", buffer);  // 디버깅을 위한 출력 추가
+                
+                if (strcmp(buffer, "NEXT_ROUND") == 0) {
+                    check_round();
+                }
+            }
+        }
 
-       int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
-       if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
-           char draw_buffer[MAXLINE];
-           int nbyte = recv(sockfd, draw_buffer, MAXLINE, 0);
-           if (nbyte > 0) {
-               draw_buffer[nbyte] = '\0';
-               printf("Received: %s\n", draw_buffer);
-               
-               if (strncmp(draw_buffer, "DRAW_", 5) == 0) {
-                   int x1, y1, x2, y2;
-                   sscanf(draw_buffer + 5, "%d_%d_%d_%d", &x1, &y1, &x2, &y2);
-                   
-                   SDL_SetRenderDrawColor(renderer, BLACK);
-                   for (int w = -LINE_THICKNESS / 2; w <= LINE_THICKNESS / 2; w++) {
-                       SDL_RenderDrawLine(renderer, x1 + w, y1, x2 + w, y2);
-                       SDL_RenderDrawLine(renderer, x1, y1 + w, x2, y2 + w);
-                   }
-               }
-               else if (strcmp(draw_buffer, "GAME_OVER") == 0) {
-                   printf("GAME_OVER\n");
-                   current_state = RESULT_SCREEN;       
-                   render_update_needed = 1;
-                   return;
-               }
-           }
-       }
+        if (strlen(input_buffer) > 0)
+        {
+            SDL_Surface *text_surface = TTF_RenderText_Blended(font, input_buffer, text_color);
+            if (text_surface)
+            {
+                SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+                SDL_Rect text_rect = {text_box_rect.x + 10, text_box_rect.y + (text_box_rect.h - text_surface->h) / 2, text_surface->w, text_surface->h};
+                SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
 
-       // CHECK_ROUND 메시지 주기적 전송
-       Uint32 current_time = SDL_GetTicks();
-       if (current_time - last_check_time > 1000) {  // 1초마다 체크
-           char check_round_buffer[MAXLINE];
-           snprintf(check_round_buffer, sizeof(check_round_buffer), "CHECK_ROUND_%d_%d", current_room_num, sockID);
-           send(sockfd, check_round_buffer, strlen(check_round_buffer), 0);
-           last_check_time = current_time;
-       }
+                SDL_FreeSurface(text_surface);
+                SDL_DestroyTexture(text_texture);
+            }
+        }
 
-       // 커서 깜박임 처리
-       if (current_time > last_blink_time + 500)
-       {
-           cursor_visible = !cursor_visible;
-           last_blink_time = current_time;
-       }
-       if (cursor_visible)
-       {
-           int text_width = 0, text_height = 0;
-           TTF_SizeText(font, input_buffer, &text_width, &text_height);
-           SDL_Rect cursor_rect = {text_box_rect.x + 10 + text_width, text_box_rect.y + 5, 2, text_box_rect.h - 10};
-           SDL_SetRenderDrawColor(renderer, text_color.r, text_color.g, text_color.b, text_color.a);
-           SDL_RenderFillRect(renderer, &cursor_rect);
-       }
+        // CHECK_ROUND 메시지 주기적 전송
+        Uint32 current_time = SDL_GetTicks();
+        if (current_time - last_check_time > 1000) {  // 1초마다 체크
+            int round = check_round();
+            
+            // Non-blocking socket check
+            fd_set readfds;
+            struct timeval timeout;
+            FD_ZERO(&readfds);
+            FD_SET(sockfd, &readfds);
+            
+            timeout.tv_sec = 0;
+            timeout.tv_usec = 10000; // 10ms timeout
+            
+            int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
+            if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
+                char tempbuffer[MAXLINE];
+                int tempnbyte = recv(sockfd, tempbuffer, MAXLINE, 0);
+                if (tempnbyte > 0) {
+                    tempbuffer[tempnbyte] = '\0';
+                    printf("Received: %s\n", tempbuffer);
+                    if (strcmp(tempbuffer, "GAME_OVER") == 0) {
+                        printf("GAME_OVER\n");
+                        current_state = RESULT_SCREEN;       
+                        render_update_needed = 1;
+                        return;
+                    }
+                }
+            }
+            last_check_time = current_time;
+        }
+        if (current_time > last_blink_time + 500)
+        {
+            cursor_visible = !cursor_visible;
+            last_blink_time = current_time;
+        }
+        if (cursor_visible)
+        {
+            int text_width = 0, text_height = 0;
+            TTF_SizeText(font, input_buffer, &text_width, &text_height);
+            SDL_Rect cursor_rect = {text_box_rect.x + 10 + text_width, text_box_rect.y + 5, 2, text_box_rect.h - 10};
+            SDL_SetRenderDrawColor(renderer, text_color.r, text_color.g, text_color.b, text_color.a);
+            SDL_RenderFillRect(renderer, &cursor_rect);
+        }
 
-       SDL_RenderPresent(renderer);
+        SDL_RenderPresent(renderer);
 
-       if(answer_num == 5){
-           current_state = RESULT_SCREEN;       
-           render_update_needed = 1;
-           return;
-       }
+        char recv_buffer[MAXLINE];
+        if (strncmp(recv_buffer, "DRAW_", 5) == 0) {
+            char *msg = recv_buffer;
+            char *next;
+            
+            while ((next = strstr(msg, "DRAW_")) != NULL) {
+                int x1, y1, x2, y2;
+                sscanf(next + 5, "%d_%d_%d_%d", &x1, &y1, &x2, &y2);
+                
+                SDL_SetRenderDrawColor(renderer, BLACK);
+                for (int w = -LINE_THICKNESS / 2; w <= LINE_THICKNESS / 2; w++) {
+                    SDL_RenderDrawLine(renderer, x1 + w, y1, x2 + w, y2);
+                    SDL_RenderDrawLine(renderer, x1, y1 + w, x2, y2 + w);
+                }
+                SDL_RenderPresent(renderer);
+                msg = next + 5;
+            }
+        }
 
-       // 이벤트 처리
-       while (SDL_PollEvent(&event)) {
-           switch (event.type)
-           {
-           case SDL_QUIT:
-               stop_answering = 1;  
-               break;
+        while (SDL_PollEvent(&event)) {
+            switch (event.type)
+            {
+            case SDL_QUIT:
+                stop_answering = 1;  
+                break;
 
-           case SDL_TEXTINPUT:
-               if (strlen(input_buffer) < sizeof(input_buffer) - 1)
-               {
-                   strcat(input_buffer, event.text.text);
-               }
-               break;
+            case SDL_TEXTINPUT:
+                if (strlen(input_buffer) < sizeof(input_buffer) - 1)
+                {
+                    strcat(input_buffer, event.text.text); // 텍스트 추가
+                }
+                break;
 
-           case SDL_KEYDOWN:
-               if (event.key.keysym.sym == SDLK_BACKSPACE && strlen(input_buffer) > 0)
-               {
-                   input_buffer[strlen(input_buffer) - 1] = '\0';
-               }
-               else if (event.key.keysym.sym == SDLK_RETURN)
-               {
-                   input_buffer[strcspn(input_buffer, "\n")] = '\0';
-                   printf("입력된 텍스트: %s\n", input_buffer);
-                   char send_buffer[MAXLINE];
-                   snprintf(send_buffer, sizeof(send_buffer), "RECV_ANSWER_%d_%s", current_room_num, input_buffer);
-                   send(sockfd, send_buffer, strlen(send_buffer), 0);
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_BACKSPACE && strlen(input_buffer) > 0)
+                {
+                    input_buffer[strlen(input_buffer) - 1] = '\0'; // 백스페이스 처리
+                }
+                else if (event.key.keysym.sym == SDLK_RETURN)
+                {
+                    input_buffer[strcspn(input_buffer, "\n")] = '\0';
+                    printf("입력된 텍스트: %s\n", input_buffer); // 엔터 입력 시 출력
+                    char send_buffer[MAXLINE];
+                    snprintf(send_buffer, sizeof(send_buffer), "RECV_ANSWER_%d_%s", current_room_num, input_buffer);
+                    send(sockfd, send_buffer, strlen(send_buffer), 0);
 
-                   // 서버 응답 수신
-                   char recv_buffer[MAXLINE];
-                   int nbyte = recv(sockfd, recv_buffer, MAXLINE, 0);
-                   recv_buffer[nbyte] = '\0';
+                    // 서버 응답 수신
+                    char recv_buffer[MAXLINE];
+                    int nbyte = recv(sockfd, recv_buffer, MAXLINE, 0);
+                    recv_buffer[nbyte] = '\0';
+                    printf("서버 응답: %s\n", recv_buffer);
 
-                   if (strcmp(recv_buffer, "RIGHT") == 0)
-                   {
-                       if (correct_sound)
-                       {
-                           Mix_PlayChannel(-1, correct_sound, 0);
-                       }
-                       char G_buffer[MAXLINE];
-                       snprintf(G_buffer, sizeof(G_buffer), "GET_CORRECT_%d_%d\n", current_room_num, sockID);
-                       printf("send: %s", G_buffer);
-                       send(sockfd, G_buffer, strlen(G_buffer), 0);
-                       printf("current_state: GAME_PAINTER_SCREEN\n"); 
-                       current_state = GAME_PAINTER_SCREEN;
-                       stop_answering = 1;
-                   }
-                   else if (strcmp(recv_buffer, "WRONG") == 0)
-                   {
-                       if (wrong_sound)
-                       {
-                           Mix_PlayChannel(-1, wrong_sound, 0);
-                       }
-                       printf("정답이 아닙니다. 다시 시도하세요.\n");
-                       memset(input_buffer, 0, sizeof(input_buffer));  // 입력 버퍼 초기화
-                   }
-               }
-               break;
+                    if (strcmp(recv_buffer, "RIGHT") == 0)
+                    {
+                        printf("right!\n");
+                        if (correct_sound)
+                        {
+                            Mix_PlayChannel(-1, correct_sound, 0); // 효과음 재생
+                        }
+                        char G_buffer[MAXLINE];
+                        snprintf(G_buffer, sizeof(G_buffer), "GET_CORRECT_%d_%d\n", current_room_num, sockID);
+                        printf("send: %s", G_buffer);
+                        send(sockfd, G_buffer, strlen(G_buffer), 0);
+                        printf("current_state: GAME_PAINTER_SCREEN\n"); 
+                        current_state = GAME_PAINTER_SCREEN;
+                        stop_answering = 1;
+                    }
+                    else if (strcmp(recv_buffer, "WRONG") == 0)
+                    {
+                        if (wrong_sound)
+                        {
+                            Mix_PlayChannel(-1, wrong_sound, 0); // 효과음 재생
+                        }
+                        printf("정답이 아닙니다. 다시 시도하세요.\n");
+                    }
+                }
+                break;
+            }
+        }
+    }
 
-           case SDL_MOUSEBUTTONDOWN:
-               int x = event.button.x;
-               int y = event.button.y;
-               
-               SDL_Rect white_back_rect = {73, 80, 179, 58};
-               if (x >= white_back_rect.x && x <= white_back_rect.x + white_back_rect.w &&
-                   y >= white_back_rect.y && y <= white_back_rect.y + white_back_rect.h)
-               {
-                   printf("back button has been clicked.\n");
-                   current_state = RESULT_SCREEN;
-                   render_update_needed = 1;
-                   return;
-               }
-               break;
-           }
-       }
-       
-       SDL_Delay(16);
-   }
-
-   answer_num++;
-   SDL_StopTextInput();
-   SDL_Rect sketchbook_rect = {70, 250, 750, 700};
-   SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
+    answer_num++;
+    SDL_StopTextInput(); // 텍스트 입력 비활성화
+    SDL_Rect sketchbook_rect = {70, 250, 750, 700};
+    SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
+    return;
 }
 
 void close_game_screen(){
@@ -866,31 +578,6 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
         // 텍스트박스 테두리 렌더링
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderDrawRect(renderer, &text_box_rect);
-
-        
-        SDL_Texture* current_round_texture = NULL;
-        switch(answer_num + 1) {
-            case 1:
-                current_round_texture = round1_texture;
-                break;
-            case 2:
-                current_round_texture = round2_texture;
-                break;
-            case 3:
-                current_round_texture = round3_texture;
-                break;
-            case 4:
-                current_round_texture = round4_texture;
-                break;
-            case 5:
-                current_round_texture = round5_texture;
-                break;
-            default:
-                current_round_texture = round1_texture;
-        }
-        
-        SDL_Rect round_num_rect = {600, 85, 65, 138};
-        SDL_RenderCopy(renderer, current_round_texture, NULL, &round_num_rect);
 
         // 입력된 텍스트 렌더링
         if (strlen(input_buffer) > 0) // 텍스트 버퍼가 비어 있지 않은 경우에만 렌더링
