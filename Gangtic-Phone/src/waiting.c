@@ -340,6 +340,11 @@ void close_waiting_room(){
     SDL_DestroyTexture(create_button_texture);
     SDL_DestroyTexture(refresh_button_texture);
     SDL_DestroyTexture(x_button_texture);
+    SDL_DestroyTexture(red_wait_texture);
+    SDL_DestroyTexture(green_wait_texture);
+    SDL_DestroyTexture(room_limit_texture);
+    SDL_DestroyTexture(need_refresh_texture);
+    SDL_DestroyTexture(cannot_delete_texture);
 }
 
 void render_waiting_room(SDL_Renderer *renderer)

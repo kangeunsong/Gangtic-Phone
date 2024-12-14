@@ -8,6 +8,7 @@
 
 #define MAX_ROOMS 4
 #define MAX_USERS_PER_ROOM 4
+#define MAX_ROUND 5
 #define MAXLINE 1000
 #define PORT 8080
 
@@ -161,14 +162,9 @@ void* handle_client(void* client_sock_ptr) {
 
             else if (strncmp(cmdline, "CHECK_ROUND_", 12) == 0) {
                 int user_room_num = atoi(&cmdline[12]);
-                int user_socket_num = atoi(&cmdline[14]);
-
-                if(runninggames[user_room_num - 1].round > 5){
-                    send(user_socket_num, "GAME_OVER", strlen("GAME_OVER"), 0);
-                }
-                else{
-                    send(user_socket_num, "NOTHING", strlen("NOTHING"), 0);
-                }
+                char round_buffer[MAXLINE];
+                snprintf(round_buffer, sizeof(round_buffer), "ROUND_%d", games[user_room_num-1].round);
+                send(client_sock, round_buffer, strlen(round_buffer), 0);
             }
 
             // 출제자 설정
@@ -234,13 +230,27 @@ void* handle_client(void* client_sock_ptr) {
                 int correct_user_sknum = atoi(&cmdline[14]);
                 printf("Server got GET_CORRECT_%d_%d!\n", correct_user_room_num, correct_user_sknum);
 
-                send(runninggames[correct_user_room_num-1].drawing_client_sock, "STOP_DRAWING", strlen("STOP_DRAWING"), 0);
-                printf("I sent the painter to stop drawing!\n");
-
-                for(int i = 0; i < 4 ; i++){
-                    if(rooms[correct_user_room_num-1].users[i] == correct_user_sknum){
+                for(int i = 0; i < MAX_USERS_PER_ROOM ; i++){
+                    if(games[correct_user_room_num-1].users_sknum[i] == correct_user_sknum){
                         int correct_user_index = i;
-                        runninggames[correct_user_room_num-1].scores[correct_user_index] += 10;
+                        games[correct_user_room_num-1].users_score[correct_user_index] += 10;
+
+                        if(games[correct_user_room_num-1].round == MAX_ROUND){ // 마지막 라운드면 게임 끝
+                            for(int j=0;j<MAX_USERS_PER_ROOM;j++){
+                                send(games[correct_user_room_num-1].users_sknum[j], "GAME_OVER", strlen("GAME_OVER"), 0);
+                            }
+                        }
+
+                        send(games[correct_user_room_num-1].drawing_sknum, "STOP_DRAWING", strlen("STOP_DRAWING"), 0);
+                        printf("I sent the painter to stop drawing!\n");
+
+                        for(int j=0;j<MAX_USERS_PER_ROOM;j++){ // 기존 출제자와 정답자를 제외한 나머지 클라이언트들에게 라운드 변경 알림
+                            if((games[correct_user_room_num-1].users_sknum[i] != correct_user_sknum) && (games[correct_user_room_num-1].users_sknum[i] != games[correct_user_room_num-1].drawing_sknum)){
+                                send(games[correct_user_room_num-1].drawing_sknum, "NEXT_ROUND", strlen("NEXT_ROUND"), 0);
+                            }
+                        }
+                        games[correct_user_room_num-1].drawing_sknum=correct_user_sknum; //정답자를 다음 라운드의 출제자로
+                        games[correct_user_room_num-1].round++;
                     }
                 }
             }
@@ -248,13 +258,10 @@ void* handle_client(void* client_sock_ptr) {
             // 답을 받아서 확인
             else if (strncmp(cmdline, "RECV_ANSWER_", 12) == 0) {
                 int user_room_num = 0;
-                char recv_answer[MAXLINE] = {0}; 
-                printf("12331233\n");
+                char recv_answer[MAXLINE] = {0};
 
                 if (sscanf(&cmdline[12], "%d_%s", &user_room_num, recv_answer) == 2) { 
-                    printf("12331233\n");
-                    // Clean up the strings before comparison                
-                    char *stored_answer = runninggames[user_room_num - 1].answer;
+                    char *stored_answer = games[user_room_num - 1].answer;
                     stored_answer[strcspn(stored_answer, "\r\n")] = '\0';
                     recv_answer[strcspn(recv_answer, "\r\n")] = '\0';
                     if (stored_answer) {
@@ -273,12 +280,6 @@ void* handle_client(void* client_sock_ptr) {
                         }
                     }
                 }
-            }
-
-            // 그림 다른 클라이언트한테 반영
-            else if (strcmp(cmdline, "RECV_DRAWING") == 0) {
-                printf("Server got RECV_DRAWING!\n");
-                // 유저가 그림 그리는 것을 받음 -> 다른 클라이언트들 화면에 반영할 것
             }
 
             else {

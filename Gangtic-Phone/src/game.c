@@ -135,7 +135,7 @@ int init_game_screen_images(SDL_Renderer *renderer)
     return 1; // 모든 이미지 로드 성공 시
 }
 
-void check_round(){
+void check_round(SDL_Renderer *renderer){
     char buffer[MAXLINE];
     snprintf(buffer, sizeof(buffer), "CHECK_ROUND_%d\n", (current_room_num));
     send(sockfd, buffer, strlen(buffer), 0);
@@ -145,7 +145,24 @@ void check_round(){
     if (nbyte > 0) {
         round_buffer[nbyte] = '\0';
         if (strncmp(round_buffer, "ROUND_", 6) == 0) {
-            current_round = atoi(&cmdline[6]);
+            current_round = atoi(&round_buffer[6]);
+
+            if(current_round == 1){
+                SDL_Rect round_1_rect = {600, 85, 65, 138};
+                SDL_RenderCopy(renderer, round1_texture, NULL, &round_1_rect);
+            }
+            else if(current_round == 2){
+                SDL_Rect round_2_rect = {600, 85, 65, 138};
+                SDL_RenderCopy(renderer, round2_texture, NULL, &round_2_rect);
+            }
+            else if(current_round == 3){
+                SDL_Rect round_3_rect = {600, 85, 65, 138};
+                SDL_RenderCopy(renderer, round3_texture, NULL, &round_3_rect);
+            }
+            else if(current_round == 4){
+                SDL_Rect round_4_rect = {600, 85, 65, 138};
+                SDL_RenderCopy(renderer, round4_texture, NULL, &round_4_rect);
+            }
             return;
         }
         else { 
@@ -162,7 +179,7 @@ void drawing_loop(SDL_Renderer *renderer)
     // snprintf(set_painter_buffer, sizeof(set_painter_buffer), "SET_PAINTER_%d_%d\n", current_room_num, sockID);
     // send(sockfd, set_painter_buffer, strlen(set_painter_buffer), 0);
     // printf("Send: %s\n", set_painter_buffer);
-    check_round();
+    check_round(renderer);
 
     char* answer = NULL;
     SDL_Event event;
@@ -282,12 +299,13 @@ void drawing_loop(SDL_Renderer *renderer)
                             prev_y = event.motion.y;
                         }
                         break;
-                    }
                 }
-            } else {
+            }    
+            else {
                 if (event.type == SDL_MOUSEBUTTONUP || event.type == SDL_MOUSEMOTION) {
                     drawing = 0;
                 }
+            }
             }
         }
     }
@@ -347,6 +365,7 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000; // 10ms timeout
 
+        char buffer[MAXLINE];
         int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
         if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
             int nbyte = recv(sockfd, buffer, MAXLINE, 0);
@@ -355,7 +374,14 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                 printf("Received: %s\n", buffer);  // 디버깅을 위한 출력 추가
                 
                 if (strcmp(buffer, "NEXT_ROUND") == 0) {
-                    check_round();
+                    check_round(renderer);
+                }
+                else if(strcmp(buffer, "GAME_OVER") == 0) {
+                    stop_answering = 1;
+                    printf("GAME_OVER\n");
+                    current_state = RESULT_SCREEN;       
+                    render_update_needed = 1;
+                    return;
                 }
             }
         }
@@ -376,35 +402,35 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
 
         // CHECK_ROUND 메시지 주기적 전송
         Uint32 current_time = SDL_GetTicks();
-        if (current_time - last_check_time > 1000) {  // 1초마다 체크
-            int round = check_round();
+        // if (current_time - last_check_time > 1000) {  // 1초마다 체크
+        //     check_round(renderer);
             
-            // Non-blocking socket check
-            fd_set readfds;
-            struct timeval timeout;
-            FD_ZERO(&readfds);
-            FD_SET(sockfd, &readfds);
+        //     // Non-blocking socket check
+        //     fd_set readfds;
+        //     struct timeval timeout;
+        //     FD_ZERO(&readfds);
+        //     FD_SET(sockfd, &readfds);
             
-            timeout.tv_sec = 0;
-            timeout.tv_usec = 10000; // 10ms timeout
+        //     timeout.tv_sec = 0;
+        //     timeout.tv_usec = 10000; // 10ms timeout
             
-            int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
-            if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
-                char tempbuffer[MAXLINE];
-                int tempnbyte = recv(sockfd, tempbuffer, MAXLINE, 0);
-                if (tempnbyte > 0) {
-                    tempbuffer[tempnbyte] = '\0';
-                    printf("Received: %s\n", tempbuffer);
-                    if (strcmp(tempbuffer, "GAME_OVER") == 0) {
-                        printf("GAME_OVER\n");
-                        current_state = RESULT_SCREEN;       
-                        render_update_needed = 1;
-                        return;
-                    }
-                }
-            }
-            last_check_time = current_time;
-        }
+        //     int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
+        //     if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
+        //         char tempbuffer[MAXLINE];
+        //         int tempnbyte = recv(sockfd, tempbuffer, MAXLINE, 0);
+        //         if (tempnbyte > 0) {
+        //             tempbuffer[tempnbyte] = '\0';
+        //             printf("Received: %s\n", tempbuffer);
+        //             if (strcmp(tempbuffer, "GAME_OVER") == 0) {
+        //                 printf("GAME_OVER\n");
+        //                 current_state = RESULT_SCREEN;       
+        //                 render_update_needed = 1;
+        //                 return;
+        //             }
+        //         }
+        //     }
+        //     last_check_time = current_time;
+        // }
         if (current_time > last_blink_time + 500)
         {
             cursor_visible = !cursor_visible;
@@ -484,8 +510,8 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                         snprintf(G_buffer, sizeof(G_buffer), "GET_CORRECT_%d_%d\n", current_room_num, sockID);
                         printf("send: %s", G_buffer);
                         send(sockfd, G_buffer, strlen(G_buffer), 0);
-                        printf("current_state: GAME_PAINTER_SCREEN\n"); 
                         current_state = GAME_PAINTER_SCREEN;
+                        printf("current_state: GAME_PAINTER_SCREEN\n"); 
                         stop_answering = 1;
                     }
                     else if (strcmp(recv_buffer, "WRONG") == 0)
@@ -545,9 +571,6 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
 
     SDL_Rect round_title_rect = {100, 90, 460, 141};
     SDL_RenderCopy(renderer, round_texture, NULL, &round_title_rect);
-
-    SDL_Rect round_1_rect = {600, 85, 65, 138};
-    SDL_RenderCopy(renderer, round1_texture, NULL, &round_1_rect);
 
     SDL_Rect total_round_rect = {680, 84, 165, 139};
     SDL_RenderCopy(renderer, total_round_texture, NULL, &total_round_rect);
@@ -657,4 +680,5 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
             }
         }
     }
+    return;
 }
