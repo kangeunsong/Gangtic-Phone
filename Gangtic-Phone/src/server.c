@@ -25,15 +25,30 @@ typedef struct{
     int round;
 } RunningGame;
 
+typedef struct{
+    int is_existing;
+    int users_num;
+    int users_sknum[4];
+    int users_score[4];
+    char users_nickname[4][MAXLINE];
+    char *answer;
+    int round;
+    int drawing_sknum;
+} Game;
+
 Room rooms[MAX_ROOMS];  // 방 목록
 RunningGame runninggames[MAX_ROOMS];
+
+Game games[MAX_ROOMS];
+int rooms_num = 0;
+
 int num_rooms = 0;      // 현재 방의 수
 int drawing_user[4] = {0, 0, 0, 0};
 
 pthread_mutex_t rooms_mutex = PTHREAD_MUTEX_INITIALIZER;  // 방 목록을 보호할 뮤텍스
 
 void* handle_client(void* client_sock_ptr);
-void create_room(int client_sock);
+void update_room_txtfile(int client_sock);
 void remove_room(int client_sock);
 void send_room_list(int client_sock); // 클라이언트에게 방 목록 전송
 int join_room(int client_sock, int room_num); // 방에 사용자 추가
@@ -78,10 +93,30 @@ void* handle_client(void* client_sock_ptr) {
                 remove_client(client_sock);
             } 
 
-            else if (strcmp(cmdline, "CREATE_ROOM") == 0) {
-                printf("Server got CREATE_ROOM!\n");
-                create_room(client_sock);  // 방 생성 처리
-                print_rooms_status();
+            else if (strncmp(cmdline, "CREATE_ROOM_", 12) == 0) {
+                int create_room_num = atoi(&cmdline[12]);
+                if(games[create_room_num-1].is_existing == 1){ // 방이 이미 존재할 경우
+                    send(client_sock, "ALREADY_EXIST", strlen("ALREADY_EXIST"), 0);
+                }
+
+                else{
+                    rooms_num++;
+                    update_room_txtfile(client_sock); 
+                    send(client_sock, "POSSIBLE", strlen("POSSIBLE"), 0);
+                }
+            } 
+
+            else if (strncmp(cmdline, "DELETE_ROOM_", 12) == 0) {
+                int delete_room_num = atoi(&cmdline[12]);
+                if(games[delete_room_num-1].users_num > 0){ // 방에 플레이어가 존재할 경우
+                    send(client_sock, "IMPOSSIBLE", strlen("IMPOSSIBLE"), 0);
+                }
+
+                else{
+                    rooms_num--;
+                    update_room_txtfile(client_sock); 
+                    send(client_sock, "POSSIBLE", strlen("POSSIBLE"), 0);
+                }
             } 
             
             else if (strncmp(cmdline, "JOIN_ROOM_", 10) == 0) {
@@ -89,6 +124,40 @@ void* handle_client(void* client_sock_ptr) {
                 printf("Server got %s = %d!\n", cmdline, room_num);
                 join_room(client_sock, room_num); // 해당 방에 사용자 추가
                 print_rooms_status();
+
+                int join_room_num = atoi(&cmdline[12]);
+                if(games[join_room_num-1].users_num < 4){ 
+                    send(client_sock, "POSSIBLE", strlen("POSSIBLE"), 0);
+                }
+
+                else{
+                    send(client_sock, "IMPOSSIBLE", strlen("IMPOSSIBLE"), 0);
+                }
+            }
+            
+            else if (strncmp(cmdline, "IM_", 3) == 0) {
+                int user_room_num = cmdline[3];  // 방 번호를 문자에서 숫자로 변환
+                int user_sockID = cmdline[5];  // 방 번호를 문자에서 숫자로 변환
+                char user_nickname[MAXLINE];
+                strcpy(user_nickname, cmdline + 7);
+
+                if(games[user_room_num-1].users_num == 0){
+                    games[user_room_num-1].drawing_sknum = user_sockID;
+                }
+                games[user_room_num-1].users_num++;
+                games[user_room_num-1].users_sknum[games[user_room_num-1].users_num-1] = user_sockID;
+                strcpy(games[user_room_num-1].users_nickname[games[user_room_num-1].users_num-1], user_nickname);
+
+                if(games[user_room_num-1].users_num == 4){
+                    for(int i=0;i<MAX_USERS_PER_ROOM;i++){
+                        if(games[user_room_num-1].users_sknum[i] == games[user_room_num-1].drawing_sknum){
+                            send(games[user_room_num-1].users_sknum[i], "GAME_PAINTER_START", strlen("GAME_PAINTER_START"), 0);
+                        }
+                        else{
+                            send(games[user_room_num-1].users_sknum[i], "GAME_PLAYER_START", strlen("GAME_PLAYER_START"), 0);
+                        }
+                    }
+                }
             }
             
             else if (strcmp(cmdline, "RETURN_ROOM_NUM") == 0) {
@@ -113,14 +182,6 @@ void* handle_client(void* client_sock_ptr) {
             else if (strcmp(cmdline, "REMOVE_ROOM") == 0) {
                 printf("Server got REMOVE_ROOM!\n");
                 remove_room(client_sock); 
-            }
-            
-            else if (strncmp(cmdline, "GET_ROOM_INTO_", 14) == 0) {
-                int user_room_num = atoi(&cmdline[14]);
-
-                char room_info[MAXLINE];
-                snprintf(room_info, sizeof(buffer), "ROOM_NUM_%d_%d_%d_%d", rooms[0].num_users, rooms[1].num_users, rooms[2].num_users, rooms[3].num_users);
-                send(client_sock, room_info, strlen(room_info), 0);
             }
             
             else if (strncmp(cmdline, "CHECK_ROUND_", 12) == 0) {
@@ -263,19 +324,38 @@ void* handle_client(void* client_sock_ptr) {
     return NULL;
 }
 
-// 방 생성 함수
-void create_room(int client_sock) {
+// rooms.txt 업데이트 함수
+void update_room_txtfile(int client_sock) {
     pthread_mutex_lock(&rooms_mutex);  // 방 목록에 접근하기 전에 뮤텍스 잠금
 
-    if (num_rooms < MAX_ROOMS) {
-        // 새 방 생성
-        rooms[num_rooms].room_id = num_rooms + 1;
-        rooms[num_rooms].num_users = 0;
-        num_rooms++;
-        printf("새 방이 생성되었습니다. 방 번호: %d\n", num_rooms);
-    } else {
-        // 방이 4개라면 생성 불가
-        printf("방 생성 실패: 최대 방 개수 도달\n");
+    FILE *file = fopen("data/rooms.txt", "r+");
+    if (file == NULL) {
+        pthread_mutex_unlock(&rooms_mutex);
+        return;
+    }
+
+    // Create a temporary file to write updated content
+    FILE *temp_file = fopen("data/rooms_temp.txt", "w");
+    if (temp_file == NULL) {
+        fclose(file);
+        pthread_mutex_unlock(&rooms_mutex);
+        return;
+    }
+
+    fprintf(temp_file, "%d\n", rooms_num);
+
+    for (int i = 0; i < rooms_num; i++) {
+        // 방 이름과 사용자 수 저장
+        fprintf(temp_file, "Room%d %d\n", i+1, games[i-1].users_num);  // rooms[i][0]은 해당 방의 사용자 수
+    }
+
+    fclose(file);
+    fclose(temp_file);
+
+    // Replace the original file with the updated temporary file
+    if (rename("data/rooms_temp.txt", "data/rooms.txt") != 0) {
+        pthread_mutex_unlock(&rooms_mutex);
+        return;
     }
 
     pthread_mutex_unlock(&rooms_mutex);  // 방 목록 접근이 끝났으므로 뮤텍스 잠금 해제
@@ -319,10 +399,10 @@ void send_room_list(int client_sock) {
 }
 
 // 사용자가 방에 들어갈 때, 방에 사용자 추가
-int join_room(int client_sock, int room_num) {
+int join_room(int client_sock, int Rnumber) {
     pthread_mutex_lock(&rooms_mutex);  // 방 목록에 접근하기 전에 뮤텍스 잠금
 
-    if (room_num < 1 || room_num > num_rooms) {
+    if (Rnumber < 1 || Rnumber > rooms_num) {
         printf("잘못된 방 번호입니다.\n");
         pthread_mutex_unlock(&rooms_mutex);
         return -1;
