@@ -36,15 +36,8 @@ SDL_Texture *room_limit_texture = NULL;
 SDL_Texture *need_refresh_texture = NULL;
 SDL_Texture *cannot_delete_texture = NULL;
 
-GameState temp_state = WAITING_ROOM;
-
 int rooms_num = 0;
-
-// int room_num = 0;
 int current_room_num = -1;
-char **rooms = NULL;
-int room_player_num[4] = {0,};
-int temp_state_num = 0;
 
 // void print_rooms_status() {
 //     printf("print_room_status\n");
@@ -196,7 +189,7 @@ void remove_last_room(SDL_Renderer *renderer) {
     }
 }
 
-void join_room(SDL_Renderer *renderer, int Rnumber) {
+int join_room(SDL_Renderer *renderer, int Rnumber) {
     char buffer[MAXLINE];
     snprintf(buffer, sizeof(buffer), "JOIN_ROOM_%d\n", Rnumber);
     send(sockfd, buffer, strlen(buffer), 0);
@@ -206,7 +199,6 @@ void join_room(SDL_Renderer *renderer, int Rnumber) {
     if (nbyte > 0) {
         recv_buffer[nbyte] = '\0';
         if (strcmp(recv_buffer, "POSSIBLE") == 0) {
-            printf("possible!!!!!!");
             SDL_Rect green_wait_rect = {329, 521, 782, 96};
             SDL_RenderCopy(renderer, green_wait_texture, NULL, &green_wait_rect);
             SDL_RenderPresent(renderer);
@@ -216,6 +208,14 @@ void join_room(SDL_Renderer *renderer, int Rnumber) {
             send(sockfd, join_buffer, strlen(join_buffer), 0);
 
             while (1) {
+                // 이벤트 처리는 계속 수행
+                SDL_Event event;
+                while (SDL_PollEvent(&event)) {
+                    if (event.type == SDL_QUIT) {
+                        return 0;
+                    }
+                }
+
                 fd_set readfds;
                 struct timeval timeout;
                 FD_ZERO(&readfds);
@@ -232,21 +232,16 @@ void join_room(SDL_Renderer *renderer, int Rnumber) {
                         if (strcmp(status_buffer, "GAME_PAINTER_START") == 0) {
                             current_state = GAME_PAINTER_SCREEN;
                             render_update_needed = 1;
-                            return;
+                            return 1;
                         }
                         else if (strcmp(status_buffer, "GAME_PLAYER_START") == 0) {
                             current_state = GAME_PLAYER_SCREEN;
                             render_update_needed = 1;
-                            return;
+                            return 1;
                         }
-                    }
-                }
-
-                // 이벤트 처리는 계속 수행
-                SDL_Event event;
-                while (SDL_PollEvent(&event)) {
-                    if (event.type == SDL_QUIT) {
-                        return;
+                        else if (strcmp(status_buffer, "WAIT") == 0){
+                            continue;
+                        }
                     }
                 }
                 SDL_Delay(16);
@@ -262,16 +257,17 @@ void join_room(SDL_Renderer *renderer, int Rnumber) {
                 SDL_Event event;
                 while (SDL_PollEvent(&event)) {
                     if (event.type == SDL_QUIT) {
-                        return;
+                        return 0;
                     }
                 }
                 SDL_Delay(16);
             }
             
             render_screen(renderer, 1);
-            return;
+            return 0;
         }
     }
+    return 0;
 }
 
 void render_screen(SDL_Renderer *renderer, int isRefresh){
@@ -331,45 +327,6 @@ void render_screen(SDL_Renderer *renderer, int isRefresh){
     }
     
     SDL_RenderPresent(renderer);
-}
-
-// 클라이언트가 방에 입장 시 상태를 받아서 화면 전환
-int handle_room_status(SDL_Renderer *renderer) {
-    char buffer[MAXLINE];
-    snprintf(buffer, sizeof(buffer), "JOIN_ROOM_%d\n", current_room_num);
-    send(sockfd, buffer, strlen(buffer), 0);
-
-    char recv_buffer[MAXLINE];
-    int nbyte = recv(sockfd, recv_buffer, MAXLINE, 0);
-    if (nbyte > 0) {
-        recv_buffer[nbyte] = '\0';
-        if (strcmp(recv_buffer, "ROOM_FULL") == 0) {
-            return 0;
-        }
-        else if (strncmp(recv_buffer, "JOIN_POSSIBLE_", 14) == 0) {
-            int join_check_user_num = atoi(&recv_buffer[14]);
-            if (join_check_user_num == 1) {
-                temp_state_num = 5;
-            } else if (join_check_user_num > 1) {
-                temp_state_num = 7;
-            }
-            
-            if (join_check_user_num == 4) {
-                current_state = temp_state;
-                render_update_needed = 1;
-            } else {
-                current_state = WAITING_FOR_PLAYERS;
-                // 각 방에 따라 다른 대기 화면 설정
-                if (current_room_num == 1) {
-                    render_screen(renderer, 3);  // room1은 red_wait
-                } else if (current_room_num == 2) {
-                    render_screen(renderer, 2);  // room2는 green_wait
-                }
-            }
-            return temp_state_num;
-        }
-    }
-    return 0;
 }
 
 void close_waiting_room(){
@@ -447,54 +404,49 @@ void render_waiting_room(SDL_Renderer *renderer)
 
                 // 참가할 방 클릭
                 else if (x >= 145 && x <= 500 && y >= 399 && y <= 634) {
-                    join_room(renderer, 1);
-                    return;
+                    if(rooms_num >= 1){
+                        if(join_room(renderer, 1) == 1){
+                            running = 0;
+                        }                        
+                        return;
+                    }
                 }
                 else if (x >= 779 && x <= 1200 && y >= 401 && y <= 636) { 
-                    current_room_num = 2;
-                    if(room_player_num[current_room_num - 1] < MAX_USERS_PER_ROOM){
-                        room_player_num[current_room_num - 1]++;
-                        int status = handle_room_status(renderer);  // handle_room_status를 한 번만 호출
-                        if(status == 5){
-                            temp_state = GAME_PAINTER_SCREEN;
-                            render_update_needed = 1;
-                        }
-                        else if(status == 7){
-                            temp_state = GAME_PLAYER_SCREEN;
-                            render_update_needed = 1;
-                        }
+                    // current_room_num = 2;
+                    // if(room_player_num[current_room_num - 1] < MAX_USERS_PER_ROOM){
+                    //     room_player_num[current_room_num - 1]++;
+                    //     int status = handle_room_status(renderer);  // handle_room_status를 한 번만 호출
+                    //     if(status == 5){
+                    //         temp_state = GAME_PAINTER_SCREEN;
+                    //         render_update_needed = 1;
+                    //     }
+                    //     else if(status == 7){
+                    //         temp_state = GAME_PLAYER_SCREEN;
+                    //         render_update_needed = 1;
+                    //     }
+                    // }
+                    if(rooms_num >= 2){
+                        if(join_room(renderer, 2) == 1){
+                            running = 0;
+                        }                        
+                        return;
                     }
-                    return;
                 }
                 else if (x >= 145 && x <= 500 && y >= 690 && y <= 870) {
-                    current_room_num = 3;
-                    if(room_player_num[current_room_num - 1] < MAX_USERS_PER_ROOM){
-                        room_player_num[current_room_num - 1]++;
-                        int status = handle_room_status(renderer);  // handle_room_status를 한 번만 호출
-                        if(status == 5){
-                            temp_state = GAME_PAINTER_SCREEN;
-                            render_update_needed = 1;
-                        }
-                        else if(status == 7){
-                            temp_state = GAME_PLAYER_SCREEN;
-                            render_update_needed = 1;
-                        }
+                    if(rooms_num >= 3){
+                        if(join_room(renderer, 3) == 1){
+                            running = 0;
+                        }                        
+                        return;
                     }
-                    return;
                 }
                 else if (x >= 779 && x <= 1200 && y >= 690 && y <= 870) { 
-                    current_room_num = 4;
-                    if(room_player_num[current_room_num - 1] < MAX_USERS_PER_ROOM){
-                        room_player_num[current_room_num - 1]++;
-                        int status = handle_room_status(renderer);  // handle_room_status를 한 번만 호출
-                        if(status == 5){
-                            temp_state = GAME_PAINTER_SCREEN;
-                        }
-                        else if(status == 7){
-                            temp_state = GAME_PLAYER_SCREEN;
-                        }
+                    if(rooms_num == 4){
+                        if(join_room(renderer, 4) == 1){
+                            running = 0;
+                        }                        
+                        return;
                     }
-                    return;
                 }
 
                 if (rooms_num > 0) 
@@ -519,48 +471,5 @@ void render_waiting_room(SDL_Renderer *renderer)
                 }
             }
         }
-        if (current_state == WAITING_FOR_PLAYERS) {
-            static Uint32 last_check_time = 0;
-            Uint32 current_time = SDL_GetTicks();
-            
-            if (current_time - last_check_time > 1000) {  // 1초마다 체크
-                fd_set readfds;
-                struct timeval timeout;
-                FD_ZERO(&readfds);
-                FD_SET(sockfd, &readfds);
-                timeout.tv_sec = 0;
-                timeout.tv_usec = 10000;
-
-                if (select(sockfd + 1, &readfds, NULL, NULL, &timeout) > 0) {
-                    char check_buffer[MAXLINE];
-                    int nbyte = recv(sockfd, check_buffer, MAXLINE, 0);
-                    if (nbyte > 0) {
-                        check_buffer[nbyte] = '\0';
-                        if (strncmp(check_buffer, "REQUEST_USER_NUM_", 17) == 0) {
-                            int user_count = atoi(&check_buffer[17]);
-                            if (user_count < 4){
-                                printf("%d, %d\n", current_room_num, user_count);
-                                render_screen(renderer, 2);
-                            }
-                            else if (user_count == 4){  // >= 로 수정
-                                printf("%d, %d\n", current_room_num, user_count);
-                                render_screen(renderer, 3);
-                                
-                                // 화면 전환도 여기서 처리
-                                current_state = temp_state;
-                                render_update_needed = 1;
-                                return;
-                            }
-                        }
-                    }
-                }
-                last_check_time = current_time;
-            }
-            
-            // 대기 화면 업데이트
-            // render_screen(renderer, 1);
-        }
-        
-        SDL_Delay(16);
     }
 }
