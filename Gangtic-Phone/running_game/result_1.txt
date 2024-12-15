@@ -1,4 +1,4 @@
-kangeunsong 50
-kimmmm1 20
-helloworld 15
-unknown 0
+hello 30
+kangeunsong 20
+world 0
+sfda 0

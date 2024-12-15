@@ -29,7 +29,6 @@ void* handle_client(void* client_sock_ptr) {
     while (1) {
         int nbyte = recv(client_sock, buffer, MAXLINE, 0);
         if (nbyte <= 0) {
-            printf("No data received or connection closed\n");
             remove_client(client_sock);
             close(client_sock);  // 클라이언트 소켓 닫기
             free(client_sock_ptr);  // 동적으로 할당된 메모리 해제
@@ -37,7 +36,6 @@ void* handle_client(void* client_sock_ptr) {
         }
         
         buffer[nbyte] = '\0';
-        printf("Received data: %s\n", buffer);
 
         char *line = strtok(buffer, "\n");
         while (line != NULL) {
@@ -112,6 +110,7 @@ void* handle_client(void* client_sock_ptr) {
 
                 update_room_txtfile();
                 if(games[user_room_num-1].users_num == 4){
+                    init_game_log(user_room_num);
                     for(int i=0;i<MAX_USERS_PER_ROOM;i++){
                         if(games[user_room_num-1].users_sknum[i] == games[user_room_num-1].drawing_sknum){
                             send(games[user_room_num-1].users_sknum[i], "GAME_PAINTER_START", strlen("GAME_PAINTER_START"), 0);
@@ -158,6 +157,8 @@ void* handle_client(void* client_sock_ptr) {
                     printf("Memory allocation failed!\n");
                     return NULL;
                 }
+                write_round_start(user_room_num, games[user_room_num-1].round);
+                write_answer_set(user_room_num, games[user_room_num-1].answer);
             }
 
             // 다른 클라이언트 화면에 그림이 나타나게
@@ -176,7 +177,6 @@ void* handle_client(void* client_sock_ptr) {
 
             // 문제 맞혔을 때
             else if (strncmp(cmdline, "GET_CORRECT_", 12) == 0) {
-                printf("GET_CORRECT\n");
                 int correct_user_room_num = atoi(&cmdline[12]);
                 int correct_user_sknum = atoi(&cmdline[14]);
 
@@ -184,7 +184,9 @@ void* handle_client(void* client_sock_ptr) {
                     if(games[correct_user_room_num-1].users_sknum[i] == correct_user_sknum){
                         int correct_user_index = i;
                         games[correct_user_room_num-1].users_score[correct_user_index] += 10;
+                        write_point_gained(correct_user_room_num, games[correct_user_room_num-1].users_nickname[correct_user_index], 10);
                         if(games[correct_user_room_num-1].round >= MAX_ROUND){ // 마지막 라운드면 게임 끝
+                            writing_result(correct_user_room_num); 
                             for(int j=0;j<MAX_USERS_PER_ROOM;j++){
                                 if(games[correct_user_room_num-1].users_sknum[j] != correct_user_sknum){
                                     send(games[correct_user_room_num-1].users_sknum[j], "GAME_OVER", strlen("GAME_OVER"), 0);
@@ -214,17 +216,17 @@ void* handle_client(void* client_sock_ptr) {
                     stored_answer[strcspn(stored_answer, "\r\n")] = '\0';
                     recv_answer[strcspn(recv_answer, "\r\n")] = '\0';
                     if (stored_answer) {
-                        for(int i = 0; i < strlen(recv_answer) + 1; i++) {
-                            printf("%02x ", (unsigned char)recv_answer[i]);
+                        int temp_index = 0;
+                        for(int i=0;i<MAX_USERS_PER_ROOM;i++){
+                            if(games[user_room_num-1].users_sknum[i]==client_sock){
+                                temp_index = i;
+                            }
                         }
-                        for(int i = 0; i < strlen(stored_answer) + 1; i++) {
-                            printf("%02x ", (unsigned char)stored_answer[i]);
-                        }
-                        printf("\n");
-
                         if (strcasecmp(recv_answer, stored_answer) == 0) {
+                            write_guess_result(user_room_num, games[user_room_num-1].users_nickname[temp_index], recv_answer, 1); 
                             send(client_sock, "RIGHT", strlen("RIGHT"), 0);
                         } else {
+                            write_guess_result(user_room_num, games[user_room_num-1].users_nickname[temp_index], recv_answer, 0); 
                             send(client_sock, "WRONG", strlen("WRONG"), 0);
                         }
                     }
