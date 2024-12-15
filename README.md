@@ -46,7 +46,7 @@
 ![demonstration1 GIF](/readme/gif/home-setting.gif)  
 On the **home screen**, you can access the audio settings by clicking the **setting** button.  
 The audio includes background music and sound effects for correct and incorrect answers.  
-~~(Audio files are located in /Gangtic-Phone/assets/audio.)~~
+`(Audio files are located in /Gangtic-Phone/assets/audio.)`
 
 <br>
 <br>
@@ -79,7 +79,7 @@ When one player answers correctly, the rest of the players are notified with a c
 ![demonstration5 GIF](/readme/gif/game-result.gif)  
 The game consists of a total of **5 rounds**.  
 After the final round, it will be changed to the **result screen**, where players can view the result of the completed game.  
-<span style="color: gray">(Result files are stored in /Gangtic-Phone/running_game/result_n.txt.)</span>  
+`(Result files are stored in /Gangtic-Phone/running_game/result_n.txt.)`  
 Clicking the **Home** button returns players to the main screen, and the **Exit** button closes the program.
 
 <br>
