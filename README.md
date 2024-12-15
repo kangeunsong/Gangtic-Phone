@@ -79,7 +79,7 @@ When one player answers correctly, the rest of the players are notified with a c
 ![demonstration5 GIF](/readme/gif/game-result.gif)  
 The game consists of a total of **5 rounds**.  
 After the final round, it will be changed to the **result screen**, where players can view the result of the completed game.  
-~~(Result files are stored in /Gangtic-Phone/running_game/result_n.txt.)~~  
+<span style="color: gray">(Result files are stored in /Gangtic-Phone/running_game/result_n.txt.)</span>  
 Clicking the **Home** button returns players to the main screen, and the **Exit** button closes the program.
 
 <br>
