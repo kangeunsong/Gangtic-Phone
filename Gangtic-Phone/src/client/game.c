@@ -16,7 +16,7 @@
 #define BLACK 0, 0, 0, 255
 #define LINE_THICKNESS 5
 #define MAXLINE 1000
-#define ANSWER_NUM 10
+#define ANSWER_NUM 20
 
 int init_game_screen_images(SDL_Renderer *renderer);
 void drawing_loop(SDL_Renderer *renderer);
@@ -242,22 +242,23 @@ void drawing_loop(SDL_Renderer *renderer)
         printf("Unable to open answers.txt\n");
         return;
     }
+    
+    char words[ANSWER_NUM][100];
+    int word_count = 0;
 
-    char words[5][100];
-    for (int i = 0; i <= current_round; i++) {
-        if (fgets(words[i], sizeof(words[i]), file)) {
-            if (i == current_round) {
-                answer = words[current_round];
-                answer[strcspn(answer, "\n")] = 0;
-                break;
-            }
-        }
+    while (word_count < ANSWER_NUM && fgets(words[word_count], sizeof(words[word_count]), file)) {
+        words[word_count][strcspn(words[word_count], "\n")] = 0;
+        word_count++;
     }
     fclose(file);
 
-    if (answer == NULL) {
+    if (word_count == 0) {
         return;
     }
+
+    srand(time(NULL));
+    int random_index = rand() % word_count;
+    answer = words[random_index];
 
     // 정답 화면에 표시
     int x_pos = 1110;
