@@ -36,6 +36,7 @@ SDL_Texture *game_mountain_background_texture = NULL;
 SDL_Texture *sketchbook_texture = NULL;
 SDL_Texture *right_answer_texture = NULL;
 SDL_Texture *wrong_answer_texture = NULL;
+SDL_Texture *other_correct_texture = NULL;
 // 시계 이미지 텍스처와 회전 각도 변수
 SDL_Texture *clock1_texture = NULL; // 시계 텍스처
 static double rotation_angle = 0.0; // 현재 회전 각도
@@ -138,10 +139,14 @@ int init_game_screen_images(SDL_Renderer *renderer)
     right_answer_texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
-
     surface = IMG_Load("assets/images/wrong_answer.png");
     wrong_answer_texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
+    
+    surface = IMG_Load("assets/images/other_correct.png");
+    other_correct_texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
     return 1; // 모든 이미지 로드 성공 시
 }
 
@@ -201,7 +206,7 @@ void drawing_loop(SDL_Renderer *renderer)
         SDL_RenderPresent(renderer);
 
         Uint32 start_time = SDL_GetTicks();
-        while (SDL_GetTicks() - start_time < 2000) {
+        while (SDL_GetTicks() - start_time < 1000) {
             SDL_Delay(16);
         }
         SDL_Rect background_portion = {1026, 771, 269, 96};
@@ -397,6 +402,19 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                 if (strcmp(buffer, "NEXT_ROUND") == 0) {
                     check_round(renderer);
                     printf("### ROUND %d ###\n", current_round);
+
+                    SDL_Rect other_correct_rect = {937, 702, 447, 165};
+                    SDL_RenderCopy(renderer, other_correct_texture, NULL, &other_correct_rect);
+                    SDL_RenderPresent(renderer);
+                    Uint32 start_time = SDL_GetTicks();
+                    while (SDL_GetTicks() - start_time < 1000) {
+                        SDL_Delay(16);
+                    }
+
+                    SDL_Rect background_portion = {937, 702, 447, 165};
+                    SDL_Rect src_rect = {937, 702, 447, 165};
+                    SDL_RenderCopy(renderer, game_mountain_background_texture, &src_rect, &background_portion);
+                    SDL_RenderPresent(renderer);
                     
                     // 그림 초기화
                     SDL_Rect sketchbook_rect = {70, 250, 750, 700};
@@ -526,7 +544,7 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                         SDL_RenderPresent(renderer);
 
                         Uint32 start_time = SDL_GetTicks();
-                        while (SDL_GetTicks() - start_time < 2000) {
+                        while (SDL_GetTicks() - start_time < 1000) {
                             SDL_Delay(16);
                         }
                         SDL_Rect background_portion = {1026, 771, 269, 96}; // wrong_answer_rect와 동일한 영역
@@ -571,6 +589,7 @@ void close_game_screen(){
     SDL_DestroyTexture(clock1_texture);
     SDL_DestroyTexture(right_answer_texture);
     SDL_DestroyTexture(wrong_answer_texture);
+    SDL_DestroyTexture(other_correct_texture);
 }
 
 void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
