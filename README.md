@@ -44,22 +44,7 @@
 
 이 프로젝트에 대해 소개해주세요.
 
-### 🖼️ 기능
-
-- 주요 기능 1
-- 주요 기능 2
-- 주요 기능 3
-
-## 설치 방법
-
-```bash
-git clone https://github.com/username/repository.git
-cd repository
-```
-
-## 사용 방법
-
-프로젝트 사용 방법을 설명해주세요.
+### 🖼️ Demonstration
 
 ![demonstration1 GIF](/readme/gif/home-setting.gif)
 ![demonstration2 GIF](/readme/gif/home-waiting.gif)
@@ -67,10 +52,21 @@ cd repository
 ![demonstration4 GIF](/readme/gif/game.gif)
 ![demonstration5 GIF](/readme/gif/game-result.gif)
 
-## 기여 방법
+## 설치 방법
 
-프로젝트에 기여하고 싶으신 분들을 위한 안내를 작성해주세요.
+## 💻 How to use
 
-## 라이선스
+```bash
+git clone https://github.com/kangeunsong/Gangtic-Phone
+cd repository
+```
 
-이 프로젝트는 [라이선스 이름]에 따라 라이선스가 부여됩니다.
+Make sure that you're in right repository.
+
+```bash
+make
+./server
+./client nickname
+```
+
+Do "make" first to make .exe files. Then, execute 1.server and 2.client(with your nickname).
