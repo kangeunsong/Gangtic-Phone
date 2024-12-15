@@ -1,6 +1,7 @@
 # 프로젝트 제목
 
 ![Hello GIF](/readme/gif/enter-game.gif)
+![Hello2 GIF](/readme/gif/enter-game2.gif)
 
 ## 소개
 
