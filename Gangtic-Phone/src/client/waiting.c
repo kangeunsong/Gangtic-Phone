@@ -39,16 +39,6 @@ SDL_Texture *cannot_delete_texture = NULL;
 int rooms_num = 0;
 int current_room_num = -1;
 
-// void print_rooms_status() {
-//     printf("print_room_status\n");
-//     for (int i = 0; i < room_num; i++) {
-//         printf("Room %d\n", i + 1);
-//         printf("Room ID: %s\n", rooms[i]);
-//         printf("Number of users: %d\n", room_player_num[i]);
-//         printf("\n\n");
-//     }
-// }
-
 int init_waiting_room_images(SDL_Renderer *renderer)
 {
     SDL_Surface *surface = IMG_Load("assets/images/waiting_title.png");
@@ -111,15 +101,13 @@ int init_waiting_room_images(SDL_Renderer *renderer)
     cannot_delete_texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
-    return 1; // 모든 이미지 로드 성공 시
+    return 1;
 }
 
 void read_rooms_from_file()
 {
     const char *filename = "data/rooms.txt";
     FILE *file = fopen(filename, "r");
-
-    // 첫 번째 줄에서 방 개수 읽기
     char buffer[256];
     if (fgets(buffer, sizeof(buffer), file))
     {
@@ -128,7 +116,6 @@ void read_rooms_from_file()
     fclose(file);
 }
 
-// 방 생성
 void create_new_room(SDL_Renderer *renderer) {
     char buffer[MAXLINE];
     snprintf(buffer, sizeof(buffer), "CREATE_ROOM_%d\n", (rooms_num + 1));
@@ -144,7 +131,6 @@ void create_new_room(SDL_Renderer *renderer) {
             return;
         }
         else if (strcmp(recv_buffer, "ALREADY_EXIST") == 0) {
-            // 화면 새로고침 필요
             SDL_Rect need_refresh_rect = {353, 521, 733, 96};
             SDL_RenderCopy(renderer, need_refresh_texture, NULL, &need_refresh_rect);
             SDL_RenderPresent(renderer);
@@ -167,7 +153,7 @@ void remove_last_room(SDL_Renderer *renderer) {
             render_screen(renderer, 1);
             return;
         }
-        else { // 방을 삭제할 수 없음
+        else {
             SDL_Rect cannot_delete_rect = {215, 521, 1011, 96};
             SDL_RenderCopy(renderer, cannot_delete_texture, NULL, &cannot_delete_rect);
             SDL_RenderPresent(renderer);
@@ -208,7 +194,6 @@ int join_room(SDL_Renderer *renderer, int Rnumber) {
             send(sockfd, join_buffer, strlen(join_buffer), 0);
 
             while (1) {
-                // 이벤트 처리는 계속 수행
                 SDL_Event event;
                 while (SDL_PollEvent(&event)) {
                     if (event.type == SDL_QUIT) {
@@ -398,7 +383,7 @@ void render_waiting_room(SDL_Renderer *renderer)
                 // "Create" 버튼 클릭 확인
                 else if (x >= 263 && x <= 662 && y >= 243 && y <= 337)
                 {
-                    create_new_room(renderer); // 방 생성 함수 호출
+                    create_new_room(renderer);
                 }
 
                 // "Refresh" 버튼 클릭 확인
@@ -418,19 +403,6 @@ void render_waiting_room(SDL_Renderer *renderer)
                     }
                 }
                 else if (x >= 779 && x <= 1200 && y >= 401 && y <= 636) { 
-                    // current_room_num = 2;
-                    // if(room_player_num[current_room_num - 1] < MAX_USERS_PER_ROOM){
-                    //     room_player_num[current_room_num - 1]++;
-                    //     int status = handle_room_status(renderer);  // handle_room_status를 한 번만 호출
-                    //     if(status == 5){
-                    //         temp_state = GAME_PAINTER_SCREEN;
-                    //         render_update_needed = 1;
-                    //     }
-                    //     else if(status == 7){
-                    //         temp_state = GAME_PLAYER_SCREEN;
-                    //         render_update_needed = 1;
-                    //     }
-                    // }
                     if(rooms_num >= 2){
                         if(join_room(renderer, 2) == 1){
                             current_room_num = 2;
@@ -460,7 +432,6 @@ void render_waiting_room(SDL_Renderer *renderer)
 
                 if (rooms_num > 0) 
                 {
-                    // 마지막 방 x 버튼의 위치 계산
                     SDL_Rect x_button_rect;
                     if (rooms_num == 1) {
                         x_button_rect = (SDL_Rect){590, 403, 45, 68};
@@ -475,7 +446,7 @@ void render_waiting_room(SDL_Renderer *renderer)
                     // x 버튼 클릭 확인
                     if (x >= x_button_rect.x && x <= x_button_rect.x + x_button_rect.w &&
                         y >= x_button_rect.y && y <= x_button_rect.y + x_button_rect.h) {
-                        remove_last_room(renderer); // 마지막 방 삭제
+                        remove_last_room(renderer);
                     }
                 }
             }

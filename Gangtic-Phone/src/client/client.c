@@ -28,38 +28,32 @@
 #define BLUE 0, 0, 255, 255
 #define RED 255, 0, 0, 255
 
-// 서버와의 통신을 위한 함수들
 void connect_to_server(const char* server_ip, int server_port);
 void send_command(const char* command);
-void send_nickname(const char* nickname);  // 닉네임을 서버로 전송하는 함수
+void send_nickname(const char* nickname);
 
 void init_music();
 void init_correct_sound();
 void init_wrong_sound();
-
-// 게임 진행 함수들
 int init_sdl();
 
-// SDL 관련 전역 변수
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 TTF_Font *font = NULL;
 
-int sockfd; // 서버 소켓
+int sockfd;
 int sockID;
 int render_update_needed = 1;
 GameState current_state = HOME_SCREEN;
 char *nickname = NULL;
-int answer_num = 0;
 
-// 초기화 함수
 int init_sdl()
 {
     SDL_Init(SDL_INIT_VIDEO);
     TTF_Init();
     window = SDL_CreateWindow("Gangtic Phone", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    font = TTF_OpenFont("assets/fonts/font.ttf", 55); // 폰트 파일 필요
+    font = TTF_OpenFont("assets/fonts/font.ttf", 55);
 
     // init_music();  // 소리 잠깐 없애놓음
     init_correct_sound();
@@ -68,7 +62,6 @@ int init_sdl()
     return 1;
 }
 
-// 서버에 연결
 void connect_to_server(const char* server_ip, int server_port) {
     struct sockaddr_in server_addr;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -89,14 +82,13 @@ void connect_to_server(const char* server_ip, int server_port) {
     
     int server_socket_id;
     recv(sockfd, &server_socket_id, sizeof(int), 0);
-    sockID = server_socket_id; // Update sockfd to use server's ID
+    sockID = server_socket_id;
     
     printf("Connected with sockfd = %d\n", sockID);
 }
 
-// 서버에 명령을 보내는 함수
 void send_command(const char* command) {
-    ssize_t bytes_sent = send(sockfd, command, strlen(command), 0);  // 반환값으로 보낸 바이트 수 받기
+    ssize_t bytes_sent = send(sockfd, command, strlen(command), 0);
 
     if (bytes_sent < 0) {
         perror("send() failed");
@@ -106,7 +98,7 @@ void send_command(const char* command) {
 }
 
 void send_nickname(const char* nickname) {
-    send(sockfd, nickname, strlen(nickname), 0);  // 닉네임 서버로 전송
+    send(sockfd, nickname, strlen(nickname), 0);
 }
 
 void Gangtic_Phone(){
@@ -144,6 +136,7 @@ void Gangtic_Phone(){
                     }
                 }
             }  
+            // 화면 전환 필요 여부를 확인
             if(render_update_needed){
                 if (current_state == HOME_SCREEN)
                 {
@@ -185,8 +178,8 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
     
-    connect_to_server(SERVER_IP, PORT); // 서버 연결
-    send_nickname(argv[1]);  // 사용자 입력 닉네임 전송
+    connect_to_server(SERVER_IP, PORT);
+    send_nickname(argv[1]);
     nickname = argv[1];
 
     printf("My nickname is %s, and my sockID is %d, my sockfd is %d!\n", nickname, sockID, sockfd);
@@ -197,13 +190,11 @@ int main(int argc, char *argv[]) {
     
     Gangtic_Phone();
 
-    //close sdl
     TTF_CloseFont(font);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     TTF_Quit();
     SDL_Quit();
-
     Mix_CloseAudio();
     close_home_screen();
     close_setting_screen();

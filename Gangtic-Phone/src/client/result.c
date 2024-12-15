@@ -19,7 +19,6 @@ void display_leaderboard(SDL_Renderer *renderer);
 void close_result_screen();
 void init_small_font();
 
-// 홈 화면에 필요한 이미지 로드 함수
 int init_result_screen_images(SDL_Renderer *renderer)
 {
     SDL_Surface *surface = IMG_Load("assets/images/result_background.png");
@@ -38,7 +37,7 @@ int init_result_screen_images(SDL_Renderer *renderer)
     result_texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
-    return 1; // 모든 이미지 로드 성공 시
+    return 1;
 }
 
 // 작은 폰트 초기화 함수
@@ -52,12 +51,12 @@ void init_small_font()
     }
 }
 
-// 방 번호에 맞는 room_n.txt 파일을 읽고, 순위를 출력하는 함수
+// 방 번호에 맞는 room_n.txt 파일을 읽고 순위를 출력
 void display_leaderboard(SDL_Renderer *renderer)
 {
     FILE *file;
     char filename[30];
-    snprintf(filename, sizeof(filename), "running_game/result_%d.txt", current_room_num); // room_n.txt 파일 이름 생성
+    snprintf(filename, sizeof(filename), "running_game/result_%d.txt", current_room_num);
 
     file = fopen(filename, "r");
     if (file == NULL) {
@@ -73,13 +72,10 @@ void display_leaderboard(SDL_Renderer *renderer)
     int y_pos = 315; // y 좌표 (시작 위치)
 
     while (fscanf(file, "%s %d", nickname_in_file, &score) != EOF) {
-        // 점수와 닉네임 문자열 생성
         char leaderboard_entry[128];
         printf("%s - %d points\n", nickname_in_file, score);
         snprintf(leaderboard_entry, sizeof(leaderboard_entry), "%-10s %5d P", nickname_in_file, score);
 
-
-        // 텍스트 렌더링
         SDL_Color text_color = {0, 0, 0, 255}; // 검정색
         SDL_Surface *text_surface = TTF_RenderText_Blended(small_font, leaderboard_entry, text_color); // 작은 폰트 사용
         if (!text_surface) {
@@ -110,19 +106,17 @@ void close_result_screen(){
     SDL_DestroyTexture(tohome_button_texture);
     SDL_DestroyTexture(result_background_texture);
     if (small_font)
-        TTF_CloseFont(small_font); // 작은 폰트 닫기
+        TTF_CloseFont(small_font);
 }
 
-// 결과 화면 렌더링 함수
 void render_result_screen(SDL_Renderer *renderer, TTF_Font *font)
 {
     if (!init_result_screen_images(renderer))
     {
-        printf("결과 화면 이미지 로드 실패\n");
         return;
     }
 
-    init_small_font(); // 작은 폰트 초기화
+    init_small_font();
 
     SDL_RenderCopy(renderer, result_background_texture, NULL, NULL);
 
@@ -135,12 +129,10 @@ void render_result_screen(SDL_Renderer *renderer, TTF_Font *font)
     SDL_Rect tohome_button_rect = {953, 362, 325, 133};
     SDL_RenderCopy(renderer, tohome_button_texture, NULL, &tohome_button_rect);
 
-    // 텍스트를 이미지를 렌더링한 후에 출력
     display_leaderboard(renderer);
-
     SDL_RenderPresent(renderer);
 
-    render_update_needed = 0; // 화면은 한번만 렌더링
+    render_update_needed = 0;
 
     SDL_Event event;
     while(1){

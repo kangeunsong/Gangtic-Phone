@@ -37,15 +37,14 @@ SDL_Texture *right_answer_texture = NULL;
 SDL_Texture *wrong_answer_texture = NULL;
 SDL_Texture *other_correct_texture = NULL;
 
-// 시계 이미지 텍스처와 회전 각도 변수
-SDL_Texture *clock1_texture = NULL; // 시계 텍스처
-static double rotation_angle = 0.0; // 현재 회전 각도
-static Uint32 last_frame_time = 0;  // 마지막 프레임 갱신 시간
+SDL_Texture *clock1_texture = NULL;
+static double rotation_angle = 0.0;
+static Uint32 last_frame_time = 0;
 
 int prev_x = -1, prev_y = -1;
 
-Mix_Chunk *correct_sound = NULL; // 정답 효과음
-Mix_Chunk *wrong_sound = NULL; // 오답 효과음
+Mix_Chunk *correct_sound = NULL;
+Mix_Chunk *wrong_sound = NULL;
 
 int current_round = 0;
 
@@ -62,21 +61,19 @@ void init_wrong_sound() {
     }
 }
 
-// 시계 렌더링 함수
 void render_clock(SDL_Renderer *renderer) {
-    SDL_Rect clock1_rect = {1440 - 73 - 180, 160, 180, 180}; // 시계 위치 및 크기
+    SDL_Rect clock1_rect = {1440 - 73 - 180, 160, 180, 180};
 
     Uint32 current_time = SDL_GetTicks();
     // 애니메이션 업데이트 (1초마다 회전)
     if (current_time > last_frame_time + 100) {
-        rotation_angle += 45.0; // 1초마다 45도 회전
+        rotation_angle += 45.0;
         if (rotation_angle >= 360.0) {
-            rotation_angle -= 360.0; // 360도를 초과하면 리셋
+            rotation_angle -= 360.0;
         }
         last_frame_time = current_time;
     }
 
-    // 텍스처 회전 렌더링
     if (clock1_texture) {
         SDL_RenderCopyEx(renderer, clock1_texture, NULL, &clock1_rect, rotation_angle, NULL, SDL_FLIP_NONE);
     }
@@ -143,7 +140,7 @@ int init_game_screen_images(SDL_Renderer *renderer)
     other_correct_texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
-    return 1; // 모든 이미지 로드 성공 시
+    return 1;
 }
 
 void check_round(SDL_Renderer *renderer){
@@ -192,7 +189,7 @@ void check_round(SDL_Renderer *renderer){
     }
 }
 
-// 그림판 기능
+// 출제자가 그림 그리는 루프
 void drawing_loop(SDL_Renderer *renderer)
 {
     check_round(renderer);
@@ -223,21 +220,18 @@ void drawing_loop(SDL_Renderer *renderer)
         return;
     }
 
-    char words[5][100];  // 5개의 단어를 저장할 배열
-
-    // 임시로 답 설정을 처음부터 순서대로 5개
+    char words[5][100];
     for (int i = 0; i <= current_round; i++) {
         if (fgets(words[i], sizeof(words[i]), file)) {
             if (i == current_round) {
                 answer = words[current_round];
-                answer[strcspn(answer, "\n")] = 0;  // 개행문자 제거
+                answer[strcspn(answer, "\n")] = 0;
                 break;
             }
         }
     }
     fclose(file);
 
-    // NULL 체크 추가
     if (answer == NULL) {
         return;
     }
@@ -254,24 +248,19 @@ void drawing_loop(SDL_Renderer *renderer)
         render_clock(renderer);
         SDL_RenderPresent(renderer);
         SDL_Delay(16);
-        
-        // Non-blocking socket check
         fd_set readfds;
         struct timeval timeout;
         FD_ZERO(&readfds);
         FD_SET(sockfd, &readfds);
-
         timeout.tv_sec = 0;
-        timeout.tv_usec = 10000; // 10ms timeout
+        timeout.tv_usec = 10000;
 
         char buffer[MAXLINE];
         int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
         if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
             int nbyte = recv(sockfd, buffer, MAXLINE, 0);
             if (nbyte > 0) {
-                buffer[nbyte] = '\0';
-                printf("Received: %s\n", buffer);  // 디버깅을 위한 출력 추가
-                
+                buffer[nbyte] = '\0';                
                 if (strcmp(buffer, "STOP_DRAWING") == 0) {
                     printf("Received STOP_DRAWING from server.\n");
                     stop_drawing = 1;
@@ -288,7 +277,6 @@ void drawing_loop(SDL_Renderer *renderer)
             }
         }
 
-        // SDL Event handling
         while (SDL_PollEvent(&event)) {
             int x = event.button.x;
             int y = event.button.y;
@@ -338,7 +326,8 @@ void drawing_loop(SDL_Renderer *renderer)
     return;
 }
 
-void draw_thick_line(int x1, int y1, int x2, int y2, SDL_Renderer *renderer) // 화면에 그림을 그리는 함수
+// 화면에 그림을 그리는 함수
+void draw_thick_line(int x1, int y1, int x2, int y2, SDL_Renderer *renderer)
 {
     char draw_cmd[MAXLINE];
     snprintf(draw_cmd, MAXLINE, "SEND_DRAWING_%d_%d_%d_%d_%d\n", current_room_num, x1, y1, x2, y2);
@@ -352,22 +341,20 @@ void draw_thick_line(int x1, int y1, int x2, int y2, SDL_Renderer *renderer) // 
     SDL_RenderPresent(renderer);
 }
 
+// 출제자를 제외한 나머지 플레이어들이 정답을 맞추는 루프
 void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
 {
     SDL_Rect text_box_rect = {937, 898, 447, 79}; // 텍스트박스 위치와 크기
     SDL_Color box_color = {200, 200, 200, 255};   // 텍스트박스 색상
     SDL_Color text_color = {0, 0, 0, 255};        // 텍스트 색상
-    char input_buffer[100] = "";                  // 텍스트 입력 저장
-    int cursor_visible = 1;                       // 커서 깜박임
-    Uint32 last_blink_time = SDL_GetTicks();      // 커서 깜박임 타이머
+    char input_buffer[100] = "";
+    int cursor_visible = 1;
+    Uint32 last_blink_time = SDL_GetTicks();
 
     SDL_Event event;
     int stop_answering = 0;
-
     SDL_StartTextInput();
-
     check_round(renderer);
-    printf("### ROUND %d ###\n", current_round);
 
     while (!stop_answering) {
         render_clock(renderer);
@@ -482,39 +469,33 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
             case SDL_TEXTINPUT:
                 if (strlen(input_buffer) < sizeof(input_buffer) - 1)
                 {
-                    strcat(input_buffer, event.text.text); // 텍스트 추가
+                    strcat(input_buffer, event.text.text);
                 }
                 break;
 
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_BACKSPACE && strlen(input_buffer) > 0)
                 {
-                    input_buffer[strlen(input_buffer) - 1] = '\0'; // 백스페이스 처리
+                    input_buffer[strlen(input_buffer) - 1] = '\0';
                 }
                 else if (event.key.keysym.sym == SDLK_RETURN)
                 {
                     input_buffer[strcspn(input_buffer, "\n")] = '\0';
-                    printf("입력된 텍스트: %s\n", input_buffer); // 엔터 입력 시 출력
                     char send_buffer[MAXLINE];
                     snprintf(send_buffer, sizeof(send_buffer), "RECV_ANSWER_%d_%s", current_room_num, input_buffer);
                     send(sockfd, send_buffer, strlen(send_buffer), 0);
 
-                    // 서버 응답 수신
                     char recv_buffer[MAXLINE];
                     int nbyte = recv(sockfd, recv_buffer, MAXLINE, 0);
                     recv_buffer[nbyte] = '\0';
-                    printf("서버 응답: %s\n", recv_buffer);
-
-                    if (strcmp(recv_buffer, "RIGHT") == 0)
+                    if (strcmp(recv_buffer, "RIGHT") == 0) // 정답을 맞추면
                     {
-                        printf("right!\n");
                         if (correct_sound)
                         {
-                            Mix_PlayChannel(-1, correct_sound, 0); // 효과음 재생
+                            Mix_PlayChannel(-1, correct_sound, 0);
                         }
                         char G_buffer[MAXLINE];
                         snprintf(G_buffer, sizeof(G_buffer), "GET_CORRECT_%d_%d\n", current_room_num, sockID);
-                        printf("send: %s", G_buffer);
                         send(sockfd, G_buffer, strlen(G_buffer), 0);
 
                         if(current_round == 5){ // 마지막 라운드 정답 시 결과 화면으로
@@ -526,13 +507,12 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                         current_state = GAME_PAINTER_SCREEN;
                         stop_answering = 1;
                     }
-                    else if (strcmp(recv_buffer, "WRONG") == 0)
+                    else if (strcmp(recv_buffer, "WRONG") == 0) // 틀리면
                     {
                         if (wrong_sound)
                         {
-                            Mix_PlayChannel(-1, wrong_sound, 0); // 효과음 재생
+                            Mix_PlayChannel(-1, wrong_sound, 0);
                         }
-                        printf("정답이 아닙니다. 다시 시도하세요.\n");
 
                         SDL_Rect wrong_answer_rect = {1026, 771, 269, 96};
                         SDL_RenderCopy(renderer, wrong_answer_texture, NULL, &wrong_answer_rect);
@@ -542,8 +522,8 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                         while (SDL_GetTicks() - start_time < 1000) {
                             SDL_Delay(16);
                         }
-                        SDL_Rect background_portion = {1026, 771, 269, 96}; // wrong_answer_rect와 동일한 영역
-                        SDL_Rect src_rect = {1026, 771, 269, 96}; // 배경 이미지에서 해당하는 부분
+                        SDL_Rect background_portion = {1026, 771, 269, 96}; 
+                        SDL_Rect src_rect = {1026, 771, 269, 96};
                         SDL_RenderCopy(renderer, game_mountain_background_texture, &src_rect, &background_portion);
                         SDL_RenderPresent(renderer);
                     }
@@ -552,9 +532,7 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
             }
         }
     }
-
-    answer_num++;
-    SDL_StopTextInput(); // 텍스트 입력 비활성화
+    SDL_StopTextInput(); // 텍스트 입력 비활성화(출제자는 입력 안되게)
     SDL_Rect sketchbook_rect = {70, 250, 750, 700};
     SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
     return;
@@ -562,11 +540,11 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
 
 void close_game_screen(){
     if (correct_sound) {
-        Mix_FreeChunk(correct_sound); // 효과음 자원 해제
+        Mix_FreeChunk(correct_sound);
         correct_sound = NULL;
     }
     if (wrong_sound) {
-        Mix_FreeChunk(wrong_sound); // 효과음 자원 해제
+        Mix_FreeChunk(wrong_sound);
         wrong_sound = NULL;
     }
 
@@ -590,7 +568,6 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
 {
     if (!init_game_screen_images(renderer))
     {
-        printf("게임 화면 이미지 로드 실패\n");
         return;
     }
 
@@ -621,8 +598,6 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
         // 텍스트박스 렌더링
         SDL_SetRenderDrawColor(renderer, box_color.r, box_color.g, box_color.b, box_color.a);
         SDL_RenderFillRect(renderer, &text_box_rect);
-
-        // 텍스트박스 테두리 렌더링
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderDrawRect(renderer, &text_box_rect);
 
@@ -645,7 +620,7 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
             }
         }
 
-        // 커서 깜박임 구현
+        // 커서 깜박임
         Uint32 current_time = SDL_GetTicks();
         if (current_time > last_blink_time + 500)
         {
@@ -658,9 +633,7 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
             SDL_SetRenderDrawColor(renderer, text_color.r, text_color.g, text_color.b, text_color.a);
             SDL_RenderFillRect(renderer, &cursor_rect);
         }
-        //SDL_FreeSurface(text_surface);
-        //SDL_DestroyTexture(text_texture);
-        SDL_RenderPresent(renderer); // 화면 업데이트
+        SDL_RenderPresent(renderer);
         if(current_state == GAME_PAINTER_SCREEN){
             drawing_loop(renderer);
         }
@@ -673,7 +646,6 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
             current_state = RESULT_SCREEN;       
             render_update_needed = 1;
             running = 0;
-            printf("game end\n");
         }
 
         while (SDL_PollEvent(&event))
@@ -697,8 +669,7 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
                 }
                 else if (event.key.keysym.sym == SDLK_RETURN)
                 {
-                    printf("입력된 텍스트: %s\n", input_buffer); // 엔터 입력 시 출력
-                    running = 0;                                   // 텍스트 입력 종료
+                    running = 0; // 텍스트 입력 종료
                 }
                 break;
             }
