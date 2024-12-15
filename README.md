@@ -38,8 +38,14 @@ This is the term-project for **2024-2 Server Programming of CBNU**.
 
 <br>
 
-**Gangtic-Phone** is a drawing quiz game built using a **_server-client architecture_** and implemented with the **_SDL library_** for a GUI-based experience.  
-Inspired by the popular game Gartic Phone, the core gameplay involves a quiz master drawing a word while other players guess it.  
+**Gangtic-Phone** is a drawing quiz game built using a **_server-client architecture_** and implemented with the **_SDL library_** for a GUI-based experience.
+
+<br>
+
+Inspired by the popular game Gartic-Phone, the core gameplay involves a quiz master drawing a word while other players guess it.
+
+<br>
+
 Our project was developed entirely in **_C language_** and designed to run in a **_Linux_** environment.
 
 <br>
