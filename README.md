@@ -4,16 +4,16 @@
 
 <table>
     <tr>
-        <th>Project Name</th>
-        <th>Gangtic-Phone</th>
+        <th colspan="2">Project Name</th>
+        <th colspan="2">Gangtic-Phone</th>
     </tr>
     <tr>
-        <th>Period</th>
-        <th>2024.10 ~ 2024.12</th>
+        <th colspan="2">Period</th>
+        <th colspan="2">2024.10 ~ 2024.12</th>
     </tr>
     <tr>
-        <th>Team Member</th>
-        <th><a href="https://github.com/kangeunsong">Eunsong Kang</a> (BACK-END) <br><a href="https://github.com/gaeunYoo23">Gaeun Yoo</a> (FRONT-END)</th>
+        <th colspan="2">Team Member</th>
+        <th colspan="2"><a href="https://github.com/kangeunsong">Eunsong Kang</a> (BACK-END) <br><a href="https://github.com/gaeunYoo23">Gaeun Yoo</a> (FRONT-END)</th>
     </tr>
       <tr>
         <th>Theme</th>
