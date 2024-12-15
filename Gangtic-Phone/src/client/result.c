@@ -3,15 +3,18 @@
 #include <SDL2/SDL_ttf.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
 #include "client.h"
 #include "waiting.h"
+#include "game.h"
+
+#define MAXLINE 1000
 
 SDL_Texture *exit_button_texture = NULL;
 SDL_Texture *tohome_button_texture = NULL;
 SDL_Texture *result_background_texture = NULL;
 SDL_Texture *result_texture = NULL;
-
-TTF_Font *small_font = NULL; // 작은 폰트를 위한 변수
 
 int init_result_screen_images(SDL_Renderer *renderer);
 void render_result_screen(SDL_Renderer *renderer, TTF_Font *font);
@@ -38,17 +41,6 @@ int init_result_screen_images(SDL_Renderer *renderer)
     SDL_FreeSurface(surface);
 
     return 1;
-}
-
-// 작은 폰트 초기화 함수
-void init_small_font()
-{
-    small_font = TTF_OpenFont("assets/fonts/font.ttf", 45); // 45 사이즈로 폰트 열기
-    if (!small_font)
-    {
-        printf("Failed to load small font: %s\n", TTF_GetError());
-        exit(1);
-    }
 }
 
 // 방 번호에 맞는 room_n.txt 파일을 읽고 순위를 출력
@@ -141,13 +133,21 @@ void render_result_screen(SDL_Renderer *renderer, TTF_Font *font)
             switch (event.type)
             {
             case SDL_QUIT:
+                char exit_buffer[MAXLINE];
+                snprintf(exit_buffer, sizeof(exit_buffer), "FINISH_%d\n", current_room_num);
+                send(sockfd, exit_buffer, strlen(exit_buffer), 0);
+                send(sockfd, "EXIT", strlen("EXIT"), 0);
+                close(sockfd);
+                exit(0); 
                 return;
 
             case SDL_MOUSEBUTTONDOWN:
                 int x = event.button.x;
                 int y = event.button.y;
                 if (x >= exit_button_rect.x && x <= exit_button_rect.x + exit_button_rect.w && y >= exit_button_rect.y && y <= exit_button_rect.y + exit_button_rect.h) {
-                    send_command("EXIT");
+                    char finish_buffer[MAXLINE];
+                    snprintf(finish_buffer, sizeof(finish_buffer), "FINISH_%d\n", current_room_num);
+                    send(sockfd, finish_buffer, strlen(finish_buffer), 0);
                     return;
                 }
 

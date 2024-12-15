@@ -36,10 +36,13 @@ SDL_Texture *sketchbook_texture = NULL;
 SDL_Texture *right_answer_texture = NULL;
 SDL_Texture *wrong_answer_texture = NULL;
 SDL_Texture *other_correct_texture = NULL;
+SDL_Texture *draw_this_texture = NULL;
 
 SDL_Texture *clock1_texture = NULL;
 static double rotation_angle = 0.0;
 static Uint32 last_frame_time = 0;
+
+TTF_Font *small_font = NULL;
 
 int prev_x = -1, prev_y = -1;
 
@@ -58,6 +61,16 @@ void init_wrong_sound() {
     wrong_sound = Mix_LoadWAV("assets/audio/wrong_music.mp3");
     if (!wrong_sound) {
         printf("Failed to load wrong sound: %s\n", Mix_GetError());
+    }
+}
+
+void init_small_font()
+{
+    small_font = TTF_OpenFont("assets/fonts/font.ttf", 45); // 45 사이즈로 폰트 열기
+    if (!small_font)
+    {
+        printf("Failed to load small font: %s\n", TTF_GetError());
+        exit(1);
     }
 }
 
@@ -139,6 +152,10 @@ int init_game_screen_images(SDL_Renderer *renderer)
     surface = IMG_Load("assets/images/other_correct.png");
     other_correct_texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
+    
+    surface = IMG_Load("assets/images/draw_this.png");
+    draw_this_texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
 
     return 1;
 }
@@ -208,6 +225,12 @@ void drawing_loop(SDL_Renderer *renderer)
         SDL_RenderPresent(renderer);
     }
 
+    SDL_Rect text_input_area = {937, 898, 447, 79}; // 정답입력칸 덮어씌움
+    SDL_RenderCopy(renderer, game_mountain_background_texture, &text_input_area, &text_input_area);
+    SDL_Rect draw_this_rect = {937, 400, 447, 193}; // 출제할 문제 정답 칸
+    SDL_RenderCopy(renderer, draw_this_texture, NULL, &draw_this_rect);
+    SDL_RenderPresent(renderer);
+
     char* answer = NULL;
     SDL_Event event;
     SDL_Rect canvas_rect = {100, 360, 690, 540};
@@ -236,7 +259,16 @@ void drawing_loop(SDL_Renderer *renderer)
         return;
     }
 
-    printf("### ROUND %d ###\n", current_round);
+    // 정답 화면에 표시
+    int x_pos = 1110;
+    int y_pos = 460;
+    SDL_Color text_color = {0, 0, 0, 255};
+    SDL_Surface *text_surface = TTF_RenderText_Blended(small_font, answer, text_color); // 작은 폰트 사용
+    SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+
+    SDL_Rect text_rect = {x_pos, y_pos, text_surface->w, text_surface->h};
+    SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+
     printf("Draw this word!: %s\n", answer);
     char answer_command[MAXLINE];
     snprintf(answer_command, sizeof(answer_command), "SET_ANSWER_%d_%s\n", current_room_num, answer);
@@ -266,6 +298,10 @@ void drawing_loop(SDL_Renderer *renderer)
                     stop_drawing = 1;
                     current_state = GAME_PLAYER_SCREEN;      
                     render_update_needed = 1;
+
+                    SDL_Rect sketchbook_rect = {70, 250, 750, 700};
+                    SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
+                    SDL_FreeSurface(text_surface);
                     return;
                 }
                 else if (strcmp(buffer, "GAME_OVER") == 0) {
@@ -282,9 +318,9 @@ void drawing_loop(SDL_Renderer *renderer)
             int y = event.button.y;
             switch (event.type)
             {
-            case SDL_QUIT:
-                stop_drawing = 1;
-                break;
+            // case SDL_QUIT:
+            //     stop_drawing = 1;
+            //     break;
                 
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
@@ -319,10 +355,6 @@ void drawing_loop(SDL_Renderer *renderer)
             }
         }
     }
-
-    printf("It has been stopped.\n");
-    SDL_Rect sketchbook_rect = {70, 250, 750, 700};
-    SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
     return;
 }
 
@@ -356,6 +388,10 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
     SDL_StartTextInput();
     check_round(renderer);
 
+    SDL_Rect answer_area = {937, 400, 447, 193}; // 정답입력칸 덮어씌움
+    SDL_RenderCopy(renderer, game_mountain_background_texture, &answer_area, &answer_area);
+    SDL_RenderPresent(renderer);
+
     while (!stop_answering) {
         render_clock(renderer);
         SDL_RenderPresent(renderer);
@@ -380,11 +416,9 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
             int nbyte = recv(sockfd, buffer, MAXLINE, 0);
             if (nbyte > 0) {
                 buffer[nbyte] = '\0';
-                printf("Received: %s\n", buffer);
                 
                 if (strcmp(buffer, "NEXT_ROUND") == 0) {
                     check_round(renderer);
-                    printf("### ROUND %d ###\n", current_round);
 
                     SDL_Rect other_correct_rect = {937, 702, 447, 165};
                     SDL_RenderCopy(renderer, other_correct_texture, NULL, &other_correct_rect);
@@ -462,9 +496,9 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
         while (SDL_PollEvent(&event)) {
             switch (event.type)
             {
-            case SDL_QUIT:
-                stop_answering = 1;  
-                break;
+            // case SDL_QUIT:
+            //     stop_answering = 1;  
+            //     break;
 
             case SDL_TEXTINPUT:
                 if (strlen(input_buffer) < sizeof(input_buffer) - 1)
@@ -562,6 +596,8 @@ void close_game_screen(){
     SDL_DestroyTexture(right_answer_texture);
     SDL_DestroyTexture(wrong_answer_texture);
     SDL_DestroyTexture(other_correct_texture);
+    if (small_font)
+        TTF_CloseFont(small_font);
 }
 
 void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
@@ -570,6 +606,7 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
     {
         return;
     }
+    init_small_font();
 
     SDL_RenderCopy(renderer, game_mountain_background_texture, NULL, NULL);
 
@@ -652,9 +689,9 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
         {   
             switch (event.type)
             {
-            case SDL_QUIT:
-                running = 0;
-                break;
+            // case SDL_QUIT:
+            //     running = 0;
+            //     break;
             case SDL_TEXTINPUT:
                 if (strlen(input_buffer) < sizeof(input_buffer) - 1)
                 {

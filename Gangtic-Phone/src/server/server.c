@@ -42,11 +42,13 @@ void* handle_client(void* client_sock_ptr) {
             strncpy(cmdline, line, MAXLINE);
             cmdline[MAXLINE-1] = '\0';
 
-            // "EXIT" 메시지를 받으면 종료
             if (strcmp(cmdline, "EXIT") == 0) { 
                 printf("Client requested to exit. Closing connection.\n");
                 remove_client(client_sock);
-                break; 
+                close(client_sock);  // 클라이언트 소켓 닫기
+                free(client_sock_ptr);  // 동적으로 할당된 메모리 해제
+                // return NULL;
+                break;
             }
 
             else if (strcmp(cmdline, "GO_TO_HOME") == 0) { 
@@ -231,6 +233,19 @@ void* handle_client(void* client_sock_ptr) {
                         }
                     }
                 }
+            }
+
+            // 게임이 끝나면 해당 방의 구조체 배열을 초기화
+            else if (strncmp(cmdline, "FINISH_", 5) == 0) { 
+                int exit_room_num = atoi(&cmdline[5]);
+                games[exit_room_num-1].users_num--;
+                if(games[exit_room_num-1].users_num == 0){
+                    if (games[exit_room_num-1].answer != NULL) {
+                        free(games[exit_room_num-1].answer);
+                    }
+                    memset(&games[exit_room_num-1], 0, sizeof(Game));
+                }
+                break; 
             }
 
             else {
