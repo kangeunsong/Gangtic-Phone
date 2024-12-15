@@ -103,4 +103,5 @@ make
 ./client nickname
 ```
 
+**You must edit Makefile.**  
 Do "make" first to make .exe files. Then, execute 1. server and 2. client(with your nickname).
