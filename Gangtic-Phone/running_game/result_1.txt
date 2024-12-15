@@ -1,4 +1,4 @@
-hello 30
+yoogaeun 30
 kangeunsong 20
-world 0
-sfda 0
+programming 0
+server 0

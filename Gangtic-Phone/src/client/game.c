@@ -318,9 +318,9 @@ void drawing_loop(SDL_Renderer *renderer)
             int y = event.button.y;
             switch (event.type)
             {
-            // case SDL_QUIT:
-            //     stop_drawing = 1;
-            //     break;
+            case SDL_QUIT:
+                stop_drawing = 1;
+                break;
                 
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
@@ -496,9 +496,9 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
         while (SDL_PollEvent(&event)) {
             switch (event.type)
             {
-            // case SDL_QUIT:
-            //     stop_answering = 1;  
-            //     break;
+            case SDL_QUIT:
+                stop_answering = 1;  
+                break;
 
             case SDL_TEXTINPUT:
                 if (strlen(input_buffer) < sizeof(input_buffer) - 1)
@@ -689,9 +689,9 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
         {   
             switch (event.type)
             {
-            // case SDL_QUIT:
-            //     running = 0;
-            //     break;
+            case SDL_QUIT:
+                running = 0;
+                break;
             case SDL_TEXTINPUT:
                 if (strlen(input_buffer) < sizeof(input_buffer) - 1)
                 {

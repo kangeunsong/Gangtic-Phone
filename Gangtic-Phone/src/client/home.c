@@ -51,7 +51,6 @@ void render_home_screen(SDL_Renderer *renderer)
 {
     if (!init_home_screen_images(renderer))
     {
-        printf("홈 화면 이미지 로드 실패\n");
         return;
     }
 

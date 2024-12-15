@@ -160,12 +160,12 @@ void remove_last_room(SDL_Renderer *renderer) {
 
             Uint32 start_time = SDL_GetTicks();
             while (SDL_GetTicks() - start_time < 2000) {
-                // SDL_Event event;
-                // while (SDL_PollEvent(&event)) {
-                //     if (event.type == SDL_QUIT) {
-                //         return;
-                //     }
-                // }
+                SDL_Event event;
+                while (SDL_PollEvent(&event)) {
+                    if (event.type == SDL_QUIT) {
+                        return;
+                    }
+                }
                 SDL_Delay(16);
             }
             
@@ -194,12 +194,12 @@ int join_room(SDL_Renderer *renderer, int Rnumber) {
             send(sockfd, join_buffer, strlen(join_buffer), 0);
 
             while (1) {
-                // SDL_Event event;
-                // while (SDL_PollEvent(&event)) {
-                //     if (event.type == SDL_QUIT) {
-                //         return 0;
-                //     }
-                // }
+                SDL_Event event;
+                while (SDL_PollEvent(&event)) {
+                    if (event.type == SDL_QUIT) {
+                        return 0;
+                    }
+                }
 
                 fd_set readfds;
                 struct timeval timeout;
@@ -239,12 +239,12 @@ int join_room(SDL_Renderer *renderer, int Rnumber) {
 
             Uint32 start_time = SDL_GetTicks();
             while (SDL_GetTicks() - start_time < 2000) {
-                // SDL_Event event;
-                // while (SDL_PollEvent(&event)) {
-                //     if (event.type == SDL_QUIT) {
-                //         return 0;
-                //     }
-                // }
+                SDL_Event event;
+                while (SDL_PollEvent(&event)) {
+                    if (event.type == SDL_QUIT) {
+                        return 0;
+                    }
+                }
                 SDL_Delay(16);
             }
             
