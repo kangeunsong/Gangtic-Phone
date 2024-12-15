@@ -154,6 +154,7 @@ void* handle_client(void* client_sock_ptr) {
                             send(games[user_room_num-1].users_sknum[i], "GAME_PLAYER_START", strlen("GAME_PLAYER_START"), 0);
                         }
                     }
+                    games[user_room_num-1].round++;
                 }
                 else{
                     send(client_sock, "WAIT", strlen("WAIT"), 0);
@@ -178,7 +179,7 @@ void* handle_client(void* client_sock_ptr) {
                 runninggames[drawing_user_room_num-1].round++;
             }
 
-            else if (strncmp(cmdline, "SET_ANSWER_", 11) == 0) {
+            else if (strncmp(cmdline, "SET_ANSWER_", 11) == 0) { // 정답 설정
                 int user_room_num = atoi(&cmdline[11]);
                 char *answer_start = strchr(&cmdline[12], '_');
                 
@@ -187,27 +188,21 @@ void* handle_client(void* client_sock_ptr) {
                     return NULL;
                 }
                 
-                answer_start++; // Skip the underscore
-                // Remove newline if present
+                answer_start++;
                 answer_start[strcspn(answer_start, "\n")] = '\0';
                 
-                if (user_room_num > 0 && user_room_num <= MAX_ROOMS) {
-                    // Free existing answer if any
-                    if (runninggames[user_room_num-1].answer != NULL) {
-                        free(runninggames[user_room_num-1].answer);
-                    }
-                    
-                    // Allocate and copy new answer
-                    runninggames[user_room_num-1].answer = strdup(answer_start);
-                    if (!runninggames[user_room_num-1].answer) {
-                        printf("Memory allocation failed!\n");
-                        return NULL;
-                    }
-                    
-                    printf("Stored answer for room %d: %s\n", user_room_num, runninggames[user_room_num-1].answer);
-                } else {
-                    printf("Invalid room number: %d\n", user_room_num);
+                if (games[user_room_num-1].answer != NULL) {
+                    free(games[user_room_num-1].answer);
                 }
+                
+                // Allocate and copy new answer
+                games[user_room_num-1].answer = strdup(answer_start);
+                if (!games[user_room_num-1].answer) {
+                    printf("Memory allocation failed!\n");
+                    return NULL;
+                }
+                
+                printf("Stored answer for room %d: %s\n", user_room_num, games[user_room_num-1].answer);
             }
 
             else if (strncmp(cmdline, "SEND_DRAWING_", 13) == 0) { // 다른 클라이언트 화면에 그림이 나타나게
@@ -239,14 +234,15 @@ void* handle_client(void* client_sock_ptr) {
                             for(int j=0;j<MAX_USERS_PER_ROOM;j++){
                                 send(games[correct_user_room_num-1].users_sknum[j], "GAME_OVER", strlen("GAME_OVER"), 0);
                             }
+                            return NULL;
                         }
 
                         send(games[correct_user_room_num-1].drawing_sknum, "STOP_DRAWING", strlen("STOP_DRAWING"), 0);
                         printf("I sent the painter to stop drawing!\n");
 
                         for(int j=0;j<MAX_USERS_PER_ROOM;j++){ // 기존 출제자와 정답자를 제외한 나머지 클라이언트들에게 라운드 변경 알림
-                            if((games[correct_user_room_num-1].users_sknum[i] != correct_user_sknum) && (games[correct_user_room_num-1].users_sknum[i] != games[correct_user_room_num-1].drawing_sknum)){
-                                send(games[correct_user_room_num-1].drawing_sknum, "NEXT_ROUND", strlen("NEXT_ROUND"), 0);
+                            if((games[correct_user_room_num-1].users_sknum[j] != correct_user_sknum) && (games[correct_user_room_num-1].users_sknum[j] != games[correct_user_room_num-1].drawing_sknum)){
+                                send(games[correct_user_room_num-1].users_sknum[j], "NEXT_ROUND", strlen("NEXT_ROUND"), 0);
                             }
                         }
                         games[correct_user_room_num-1].drawing_sknum=correct_user_sknum; //정답자를 다음 라운드의 출제자로
