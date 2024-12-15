@@ -214,7 +214,6 @@ void drawing_loop(SDL_Renderer *renderer)
     SDL_Event event;
     SDL_Rect canvas_rect = {100, 360, 690, 540};
     int drawing = 0;
-    char buffer[MAXLINE];
 
     const char *filename = "data/answers.txt";
     FILE *file = fopen(filename, "r");
@@ -264,6 +263,7 @@ void drawing_loop(SDL_Renderer *renderer)
         timeout.tv_sec = 0;
         timeout.tv_usec = 10000; // 10ms timeout
 
+        char buffer[MAXLINE];
         int activity = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
         if (activity > 0 && FD_ISSET(sockfd, &readfds)) {
             int nbyte = recv(sockfd, buffer, MAXLINE, 0);
@@ -276,13 +276,13 @@ void drawing_loop(SDL_Renderer *renderer)
                     stop_drawing = 1;
                     current_state = GAME_PLAYER_SCREEN;      
                     render_update_needed = 1;
-                    break;
+                    return;
                 }
                 else if (strcmp(buffer, "GAME_OVER") == 0) {
                     stop_drawing = 1;
                     current_state = RESULT_SCREEN;       
                     render_update_needed = 1;
-                    break;
+                    return;
                 }
             }
         }
@@ -404,7 +404,6 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                 }
                 else if(strcmp(buffer, "GAME_OVER") == 0) {
                     stop_answering = 1;
-                    printf("GAME_OVER\n");
                     current_state = RESULT_SCREEN;       
                     render_update_needed = 1;
                     return;
@@ -504,8 +503,14 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                         snprintf(G_buffer, sizeof(G_buffer), "GET_CORRECT_%d_%d\n", current_room_num, sockID);
                         printf("send: %s", G_buffer);
                         send(sockfd, G_buffer, strlen(G_buffer), 0);
+
+                        if(current_round == 5){ // 마지막 라운드 정답 시 결과 화면으로
+                            stop_answering = 1;
+                            current_state = RESULT_SCREEN;       
+                            render_update_needed = 1;
+                            return;
+                        }
                         current_state = GAME_PAINTER_SCREEN;
-                        printf("current_state: GAME_PAINTER_SCREEN\n"); 
                         stop_answering = 1;
                     }
                     else if (strcmp(recv_buffer, "WRONG") == 0)

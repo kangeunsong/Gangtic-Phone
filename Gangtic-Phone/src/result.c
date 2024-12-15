@@ -56,8 +56,8 @@ void init_small_font()
 void display_leaderboard(SDL_Renderer *renderer)
 {
     FILE *file;
-    char filename[25];
-    snprintf(filename, sizeof(filename), "running_game/room_%d.txt", current_room_num); // room_n.txt 파일 이름 생성
+    char filename[30];
+    snprintf(filename, sizeof(filename), "running_game/result_%d.txt", current_room_num); // room_n.txt 파일 이름 생성
 
     file = fopen(filename, "r");
     if (file == NULL) {

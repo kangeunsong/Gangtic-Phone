@@ -230,10 +230,12 @@ void* handle_client(void* client_sock_ptr) {
                         int correct_user_index = i;
                         games[correct_user_room_num-1].users_score[correct_user_index] += 10;
 
-                        if(games[correct_user_room_num-1].round == MAX_ROUND){ // 마지막 라운드면 게임 끝
+                        if(games[correct_user_room_num-1].round >= MAX_ROUND){ // 마지막 라운드면 게임 끝
                             for(int j=0;j<MAX_USERS_PER_ROOM;j++){
-                                send(games[correct_user_room_num-1].users_sknum[j], "GAME_OVER", strlen("GAME_OVER"), 0);
-                                printf("I sent GAME_OVER to room%d user%d\n", correct_user_room_num, j);
+                                if(games[correct_user_room_num-1].users_sknum[j] != correct_user_sknum){
+                                    send(games[correct_user_room_num-1].users_sknum[j], "GAME_OVER", strlen("GAME_OVER"), 0);
+                                    printf("I sent GAME_OVER to room%d user%d\n", correct_user_room_num, j);
+                                }
                             }
                             return NULL;
                         }
