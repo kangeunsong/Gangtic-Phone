@@ -1,4 +1,4 @@
 yoogaeun 30
 kangeunsong 20
-programming 0
 server 0
+programming 0
