@@ -23,9 +23,9 @@
     </tr>
     <tr>
         <th>Language</th>
-        <th colspan="3">C</th>
+        <th>C</th>
         <th>Used OSS</th>
-        <th colspan="3">SDL2 Library</th>
+        <th>SDL2 Library</th>
     </tr>
 </table>
 
