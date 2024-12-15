@@ -4,7 +4,7 @@ CFLAGS = -Wall -g -I/home/kangeunsong/Gangtic-Phone/Gangtic-Phone/include  # 컴
 LIBS = -lSDL2 -lSDL2_ttf -lSDL2_image -lSDL2_mixer -lpthread # 필요 라이브러리
 
 # src 폴더 내의 특정 .c 파일 목록
-SRCS_SERVER = src/server.c
+SRCS_SERVER = src/server.c src/utils.c
 SRCS_CLIENT = src/client.c src/home.c src/waiting.c src/game.c src/result.c src/setting.c
 
 # 생성할 실행 파일

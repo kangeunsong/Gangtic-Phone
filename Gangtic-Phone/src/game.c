@@ -31,12 +31,12 @@ SDL_Texture *round3_texture = NULL;
 SDL_Texture *round4_texture = NULL;
 SDL_Texture *round5_texture = NULL;
 SDL_Texture *score_texture = NULL;
-SDL_Texture *white_back_texture = NULL;
 SDL_Texture *game_mountain_background_texture = NULL;
 SDL_Texture *sketchbook_texture = NULL;
 SDL_Texture *right_answer_texture = NULL;
 SDL_Texture *wrong_answer_texture = NULL;
 SDL_Texture *other_correct_texture = NULL;
+
 // 시계 이미지 텍스처와 회전 각도 변수
 SDL_Texture *clock1_texture = NULL; // 시계 텍스처
 static double rotation_angle = 0.0; // 현재 회전 각도
@@ -117,10 +117,6 @@ int init_game_screen_images(SDL_Renderer *renderer)
 
     surface = IMG_Load("assets/images/score.png");
     score_texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FreeSurface(surface);
-
-    surface = IMG_Load("assets/images/white_back.png");
-    white_back_texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
     surface = IMG_Load("assets/images/sketchbook.png");
@@ -415,8 +411,7 @@ void getting_answer_loop(SDL_Renderer *renderer, TTF_Font *font)
                     SDL_Rect src_rect = {937, 702, 447, 165};
                     SDL_RenderCopy(renderer, game_mountain_background_texture, &src_rect, &background_portion);
                     SDL_RenderPresent(renderer);
-                    
-                    // 그림 초기화
+
                     SDL_Rect sketchbook_rect = {70, 250, 750, 700};
                     SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
                 }
@@ -583,7 +578,6 @@ void close_game_screen(){
     SDL_DestroyTexture(round4_texture);
     SDL_DestroyTexture(round5_texture);
     SDL_DestroyTexture(score_texture);
-    SDL_DestroyTexture(white_back_texture);
     SDL_DestroyTexture(game_mountain_background_texture);
     SDL_DestroyTexture(sketchbook_texture);
     SDL_DestroyTexture(clock1_texture);
@@ -607,9 +601,6 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
 
     SDL_Rect total_round_rect = {680, 78, 171, 153};
     SDL_RenderCopy(renderer, total_round_texture, NULL, &total_round_rect);
-
-    SDL_Rect white_back_rect = {73, 50, 179, 58};
-    SDL_RenderCopy(renderer, white_back_texture, NULL, &white_back_rect); // RESULT_SCREEN용 임시 버튼
 
     SDL_Rect sketchbook_rect = {70, 250, 750, 700};
     SDL_RenderCopy(renderer, sketchbook_texture, NULL, &sketchbook_rect);
