@@ -157,29 +157,29 @@ void check_round(SDL_Renderer *renderer){
         if (strncmp(round_buffer, "ROUND_", 6) == 0) {
             current_round = atoi(&round_buffer[6]);
 
-            SDL_Rect background_portion = {600, 85, 65, 138};
-            SDL_Rect src_rect = {600, 85, 65, 138};
+            SDL_Rect background_portion = {570, 85, 100, 138};
+            SDL_Rect src_rect = {570, 85, 100, 138};
             SDL_RenderCopy(renderer, game_mountain_background_texture, &src_rect, &background_portion);
             SDL_RenderPresent(renderer);
 
             if(current_round == 1){
-                SDL_Rect round_1_rect = {600, 85, 65, 138};
+                SDL_Rect round_1_rect = {603, 83, 67, 140};
                 SDL_RenderCopy(renderer, round1_texture, NULL, &round_1_rect);
             }
             else if(current_round == 2){
-                SDL_Rect round_2_rect = {600, 85, 65, 138};
+                SDL_Rect round_2_rect = {587, 79, 83, 151};
                 SDL_RenderCopy(renderer, round2_texture, NULL, &round_2_rect);
             }
             else if(current_round == 3){
-                SDL_Rect round_3_rect = {600, 85, 65, 138};
+                SDL_Rect round_3_rect = {585, 87, 85, 136};
                 SDL_RenderCopy(renderer, round3_texture, NULL, &round_3_rect);
             }
             else if(current_round == 4){
-                SDL_Rect round_4_rect = {600, 85, 65, 138};
+                SDL_Rect round_4_rect = {578, 86, 92, 137};
                 SDL_RenderCopy(renderer, round4_texture, NULL, &round_4_rect);
             }
             else if(current_round == 5){
-                SDL_Rect round_5_rect = {600, 85, 65, 138};
+                SDL_Rect round_5_rect = {585, 84, 84, 138};
                 SDL_RenderCopy(renderer, round5_texture, NULL, &round_5_rect);
             }
             return;
@@ -583,10 +583,10 @@ void render_game_screen(SDL_Renderer *renderer, TTF_Font *font)
 
     SDL_RenderCopy(renderer, game_mountain_background_texture, NULL, NULL);
 
-    SDL_Rect round_title_rect = {100, 90, 460, 141};
+    SDL_Rect round_title_rect = {100, 89, 460, 141};
     SDL_RenderCopy(renderer, round_texture, NULL, &round_title_rect);
 
-    SDL_Rect total_round_rect = {680, 84, 165, 139};
+    SDL_Rect total_round_rect = {680, 78, 171, 153};
     SDL_RenderCopy(renderer, total_round_texture, NULL, &total_round_rect);
 
     SDL_Rect white_back_rect = {73, 50, 179, 58};
