@@ -9,7 +9,6 @@ SDL_Texture *home_mountain_background_texture = NULL;
 SDL_Texture *setting_button_texture = NULL;
 SDL_Texture *start_button_texture = NULL;
 
-// 홈 화면에 필요한 이미지 로드 함수
 int init_home_screen_images(SDL_Renderer *renderer)
 {
     SDL_Surface *surface = IMG_Load("assets/images/GANGTIC.png");
@@ -36,7 +35,7 @@ int init_home_screen_images(SDL_Renderer *renderer)
     start_button_texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
-    return 1; // 모든 이미지 로드 성공 시
+    return 1;
 }
 
 void close_home_screen(){
@@ -48,7 +47,6 @@ void close_home_screen(){
     SDL_DestroyTexture(start_button_texture);
 }
 
-// 홈 화면 렌더링 함수
 void render_home_screen(SDL_Renderer *renderer)
 {
     if (!init_home_screen_images(renderer))
