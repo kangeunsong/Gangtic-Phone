@@ -264,7 +264,7 @@ void drawing_loop(SDL_Renderer *renderer)
     int x_pos = 1110;
     int y_pos = 460;
     SDL_Color text_color = {0, 0, 0, 255};
-    SDL_Surface *text_surface = TTF_RenderText_Blended(small_font, answer, text_color); // 작은 폰트 사용
+    SDL_Surface *text_surface = TTF_RenderText_Blended(small_font, answer, text_color);
     SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
 
     SDL_Rect text_rect = {x_pos, y_pos, text_surface->w, text_surface->h};

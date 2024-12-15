@@ -1,4 +1,4 @@
-yoogaeun 30
-kangeunsong 20
-server 0
-programming 0
+start 30
+programming 20
+temp 0
+yoogaeun 0

@@ -236,16 +236,24 @@ void* handle_client(void* client_sock_ptr) {
             }
 
             // 게임이 끝나면 해당 방의 구조체 배열을 초기화
-            else if (strncmp(cmdline, "FINISH_", 5) == 0) { 
-                int exit_room_num = atoi(&cmdline[5]);
-                games[exit_room_num-1].users_num--;
-                if(games[exit_room_num-1].users_num == 0){
-                    if (games[exit_room_num-1].answer != NULL) {
-                        free(games[exit_room_num-1].answer);
+            else if (strncmp(cmdline, "FINISH_", 7) == 0) { 
+                int exit_room_num = atoi(&cmdline[7]);
+                pthread_mutex_lock(&rooms_mutex);                
+                if (games[exit_room_num-1].users_num > 0) {
+                    games[exit_room_num-1].users_num--;                    
+                    if(games[exit_room_num-1].users_num == 0){
+                        if (games[exit_room_num-1].answer != NULL) {
+                            char* temp = games[exit_room_num-1].answer;
+                            games[exit_room_num-1].answer = NULL;
+                            free(temp);
+                        }
+                        
+                        Game empty_game = {0};  // 초기화
+                        games[exit_room_num-1] = empty_game;
                     }
-                    memset(&games[exit_room_num-1], 0, sizeof(Game));
-                }
-                break; 
+                }                
+                pthread_mutex_unlock(&rooms_mutex);
+                break;
             }
 
             else {
