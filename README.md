@@ -34,7 +34,13 @@
 
 ### 🎨 소개
 
-이 프로젝트에 대해 소개해주세요.
+This is the term-project for **2024-2 Server Programming of CBNU**.
+
+<br>
+
+**Gangtic-Phone** is a drawing quiz game built using a **_server-client architecture_** and implemented with the **_SDL library_** for a GUI-based experience.  
+Inspired by the popular game Gartic Phone, the core gameplay involves a quiz master drawing a word while other players guess it.  
+Our project was developed entirely in **_C language_** and designed to run in a **_Linux_** environment.
 
 <br>
 <br>
@@ -70,7 +76,8 @@ Afterward, the role of the quiz master is passed to the player who answers corre
 ![demonstration4 GIF](/readme/gif/game.gif)  
 The quiz master draws the answer on the sketchpad.  
 This drawing is **visible to all players**, and they can submit their answers using the text-input field.  
-If a player answers correctly, they take over as the next quiz master. If the answer is incorrect, a message indicating the wrong answer will appear.  
+If a player answers correctly, they take over as the next quiz master.  
+If the answer is incorrect, a message indicating the wrong answer will appear.  
 When one player answers correctly, the rest of the players are notified with a corresponding message.
 
 <br>
@@ -94,7 +101,7 @@ git clone https://github.com/kangeunsong/Gangtic-Phone
 cd repository
 ```
 
-Make sure that you're in right repository.
+Make sure that you're in the right repository.
 <br>
 
 ```bash
