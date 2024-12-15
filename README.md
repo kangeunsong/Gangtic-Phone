@@ -14,7 +14,7 @@
         <th>Term Project</th>
         <th>Team Member</th>
         <th>
-          <a href="https://github.com/kangeunsong">Eunsong Kang</a> - BACK-END <br><a href="https://github.com/gaeunYoo23">Gaeun Yoo</a> - FRONT-END
+          <a href="https://github.com/kangeunsong">Eunsong Kang</a> (BACK-END) <br><a href="https://github.com/gaeunYoo23">Gaeun Yoo</a> (FRONT-END)
       </th>
     </tr>
       <tr>
