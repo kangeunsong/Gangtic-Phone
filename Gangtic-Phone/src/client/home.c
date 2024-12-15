@@ -71,7 +71,7 @@ void render_home_screen(SDL_Renderer *renderer)
     SDL_Rect setting_button_rect = {58, 822, 368, 141};
     SDL_RenderCopy(renderer, setting_button_texture, NULL, &setting_button_rect);
 
-    SDL_Rect home_howto_rect = {702, 590, 749, 394};
+    SDL_Rect home_howto_rect = {661, 663, 779, 394};
     SDL_RenderCopy(renderer, home_howto_texture, NULL, &home_howto_rect);
 
 

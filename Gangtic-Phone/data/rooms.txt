@@ -1,2 +1,5 @@
-1
-Room1 4
+4
+Room1 0
+Room2 0
+Room3 0
+Room4 0
