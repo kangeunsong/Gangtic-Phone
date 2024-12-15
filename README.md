@@ -37,7 +37,7 @@ This is the **term-project** for **2024-2 Server Programming of CBNU**.
 
 <br>
 
-**Gangtic-Phone** is a **drawing quiz game** built using a **_server-client architecture_** and implemented with the **_SDL library_** for a GUI-based experience.  
+**Gangtic-Phone** is a **drawing quiz game** built using a **_server-client architecture_** and implemented with the **_SDL2 library_** for a GUI-based experience.  
 Our project was developed entirely in **_C language_** and designed to run in a **_Linux_** environment.
 
 <br>
