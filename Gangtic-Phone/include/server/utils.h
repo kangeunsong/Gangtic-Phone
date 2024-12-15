@@ -6,6 +6,5 @@
 void update_room_txtfile();
 int return_room_num(int client_sock);
 void remove_client(int client_sock);
-void print_rooms_status();
 
 #endif

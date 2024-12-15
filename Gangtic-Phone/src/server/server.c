@@ -44,7 +44,8 @@ void* handle_client(void* client_sock_ptr) {
             strncpy(cmdline, line, MAXLINE);
             cmdline[MAXLINE-1] = '\0';
 
-            if (strcmp(cmdline, "EXIT") == 0) { // "EXIT" 메시지를 받으면 종료
+            // "EXIT" 메시지를 받으면 종료
+            if (strcmp(cmdline, "EXIT") == 0) { 
                 printf("Client requested to exit. Closing connection.\n");
                 remove_client(client_sock);
                 break; 
@@ -55,7 +56,8 @@ void* handle_client(void* client_sock_ptr) {
                 remove_client(client_sock);
             } 
 
-            else if (strncmp(cmdline, "CREATE_ROOM_", 12) == 0) { // 방 생성
+            // 방 생성
+            else if (strncmp(cmdline, "CREATE_ROOM_", 12) == 0) { 
                 int create_room_num = atoi(&cmdline[12]);
                 if(games[create_room_num-1].is_existing == 1){ // 방이 이미 존재할 경우
                     send(client_sock, "ALREADY_EXIST", strlen("ALREADY_EXIST"), 0);
@@ -68,7 +70,8 @@ void* handle_client(void* client_sock_ptr) {
                 }
             } 
 
-            else if (strncmp(cmdline, "DELETE_ROOM_", 12) == 0) { // 방 삭제
+            // 방 삭제
+            else if (strncmp(cmdline, "DELETE_ROOM_", 12) == 0) { 
                 int delete_room_num = atoi(&cmdline[12]);
                 if(games[delete_room_num-1].users_num > 0){ // 방에 플레이어가 존재할 경우
                     send(client_sock, "IMPOSSIBLE", strlen("IMPOSSIBLE"), 0);
@@ -81,7 +84,8 @@ void* handle_client(void* client_sock_ptr) {
                 }
             } 
             
-            else if (strncmp(cmdline, "JOIN_ROOM_", 10) == 0) { // 방 입장 가능 확인
+            // 방 입장 가능 확인
+            else if (strncmp(cmdline, "JOIN_ROOM_", 10) == 0) { 
                 int join_room_num = atoi(&cmdline[10]);
                 if(games[join_room_num-1].users_num < 4){ 
                     send(client_sock, "POSSIBLE", strlen("POSSIBLE"), 0);
@@ -92,7 +96,8 @@ void* handle_client(void* client_sock_ptr) {
                 }
             }
             
-            else if (strncmp(cmdline, "IM_", 3) == 0) { // 방 입장
+            // 방 입장
+            else if (strncmp(cmdline, "IM_", 3) == 0) { 
                 int user_room_num = atoi(&cmdline[3]);
                 int user_sockID = atoi(&cmdline[5]);
                 char user_nickname[MAXLINE];
@@ -106,7 +111,6 @@ void* handle_client(void* client_sock_ptr) {
                 strcpy(games[user_room_num-1].users_nickname[games[user_room_num-1].users_num-1], user_nickname);
 
                 update_room_txtfile();
-                print_rooms_status();
                 if(games[user_room_num-1].users_num == 4){
                     for(int i=0;i<MAX_USERS_PER_ROOM;i++){
                         if(games[user_room_num-1].users_sknum[i] == games[user_room_num-1].drawing_sknum){
@@ -123,6 +127,7 @@ void* handle_client(void* client_sock_ptr) {
                 }
             }
 
+            // 라운드 반환
             else if (strncmp(cmdline, "CHECK_ROUND_", 12) == 0) {
                 int user_room_num = atoi(&cmdline[12]);
                 char round_buffer[MAXLINE];
@@ -130,7 +135,8 @@ void* handle_client(void* client_sock_ptr) {
                 send(client_sock, round_buffer, strlen(round_buffer), 0);
             }
 
-            else if (strncmp(cmdline, "SET_ANSWER_", 11) == 0) { // 정답 설정
+            // 정답 설정
+            else if (strncmp(cmdline, "SET_ANSWER_", 11) == 0) { 
                 int user_room_num = atoi(&cmdline[11]);
                 char *answer_start = strchr(&cmdline[12], '_');
                 
@@ -152,11 +158,10 @@ void* handle_client(void* client_sock_ptr) {
                     printf("Memory allocation failed!\n");
                     return NULL;
                 }
-                
-                printf("Stored answer for room %d: %s\n", user_room_num, games[user_room_num-1].answer);
             }
 
-            else if (strncmp(cmdline, "SEND_DRAWING_", 13) == 0) { // 다른 클라이언트 화면에 그림이 나타나게
+            // 다른 클라이언트 화면에 그림이 나타나게
+            else if (strncmp(cmdline, "SEND_DRAWING_", 13) == 0) { 
                 int user_room_num, x1, y1, x2, y2;
                 sscanf(cmdline + 13, "%d_%d_%d_%d_%d", &user_room_num, &x1, &y1, &x2, &y2);
 
@@ -174,26 +179,20 @@ void* handle_client(void* client_sock_ptr) {
                 printf("GET_CORRECT\n");
                 int correct_user_room_num = atoi(&cmdline[12]);
                 int correct_user_sknum = atoi(&cmdline[14]);
-                printf("Server got GET_CORRECT_%d_%d!\n", correct_user_room_num, correct_user_sknum);
 
                 for(int i = 0; i < MAX_USERS_PER_ROOM ; i++){
                     if(games[correct_user_room_num-1].users_sknum[i] == correct_user_sknum){
                         int correct_user_index = i;
                         games[correct_user_room_num-1].users_score[correct_user_index] += 10;
-
                         if(games[correct_user_room_num-1].round >= MAX_ROUND){ // 마지막 라운드면 게임 끝
                             for(int j=0;j<MAX_USERS_PER_ROOM;j++){
                                 if(games[correct_user_room_num-1].users_sknum[j] != correct_user_sknum){
                                     send(games[correct_user_room_num-1].users_sknum[j], "GAME_OVER", strlen("GAME_OVER"), 0);
-                                    printf("I sent GAME_OVER to room%d user%d\n", correct_user_room_num, j);
                                 }
                             }
                             return NULL;
                         }
-
                         send(games[correct_user_room_num-1].drawing_sknum, "STOP_DRAWING", strlen("STOP_DRAWING"), 0);
-                        printf("I sent the painter to stop drawing!\n");
-
                         for(int j=0;j<MAX_USERS_PER_ROOM;j++){ // 기존 출제자와 정답자를 제외한 나머지 클라이언트들에게 라운드 변경 알림
                             if((games[correct_user_room_num-1].users_sknum[j] != correct_user_sknum) && (games[correct_user_room_num-1].users_sknum[j] != games[correct_user_room_num-1].drawing_sknum)){
                                 send(games[correct_user_room_num-1].users_sknum[j], "NEXT_ROUND", strlen("NEXT_ROUND"), 0);
@@ -233,16 +232,16 @@ void* handle_client(void* client_sock_ptr) {
             }
 
             else {
-                printf("%s님 입장\n", buffer);  // "kangeunsong님 입장" 출력
+                printf("%s님 입장\n", buffer);
             }
 
             line = strtok(NULL, "\n");
         }
-        memset(buffer, 0, sizeof(buffer));  // buffer 초기화
+        memset(buffer, 0, sizeof(buffer));
     }
 
     close(client_sock);  // 클라이언트 소켓 닫기
-    free(client_sock_ptr);  // 동적 할당된 메모리 해제
+    free(client_sock_ptr);
     return NULL;
 }
 
@@ -285,7 +284,6 @@ int main(int argc, char *argv[]) {
         if (client_sock == -1) {
             continue;
         }
-        printf("Client connected: %d\n", client_sock);
 
         // 동적 메모리 할당으로 클라이언트 소켓 전달
         int* client_sock_ptr = malloc(sizeof(int));

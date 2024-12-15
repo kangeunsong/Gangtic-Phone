@@ -72,17 +72,3 @@ void remove_client(int client_sock){
         pthread_mutex_unlock(&rooms_mutex);
     }
 }
-
-// 확인용 출력문
-void print_rooms_status() {
-    for (int i = 0; i < MAX_ROOMS; i++) {
-        printf("Room %d\n", i + 1);
-        printf("Number of users: %d\n", games[i].users_num);
-        printf("Users in the room: ");
-        
-        for (int j = 0; j < MAX_USERS_PER_ROOM; j++) {
-            printf("%d ", games[i].users_sknum[j]);
-        }
-        printf("\n\n");
-    }
-}
