@@ -1,0 +1,31 @@
+-----------------------------------
+Date: 2024-12-15
+Time: 22:15:04
+
+<Room1>
+
+Round: 1
+Answer: trashcan
+start: trashcan (Right)
+start got 10 points!
+
+Round: 2
+Answer: bicycle
+programming: bicycle (Right)
+programming got 10 points!
+
+Round: 3
+Answer: tablet
+start: tablet (Right)
+start got 10 points!
+
+Round: 4
+Answer: fish
+programming: fish (Right)
+programming got 10 points!
+
+Round: 5
+Answer: house
+start: house (Right)
+start got 10 points!
+
